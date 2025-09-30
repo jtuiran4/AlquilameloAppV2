@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "466263678460",
+    "project_id": "alquilamelo-app",
+    "storage_bucket": "alquilamelo-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466263678460:android:d8af83f45773eb24bee679",
+        "android_client_info": {
+          "package_name": "com.example.alquilamelo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpBW1xk3GqqLsBtqeGGHx7Zcli-teeb0s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
