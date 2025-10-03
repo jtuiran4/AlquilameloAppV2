@@ -11,15 +11,19 @@ class SplashScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
-          child: Column(
-            children: [
-              const Spacer(),
-              Image.asset(
-                'assets/alquilamelologo.png', 
-                width: 220,
-                fit: BoxFit.contain,
-              ),
-              const Spacer(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Logo centrado
+                Image.asset(
+                  'assets/alquilamelologo.png', 
+                  width: 220,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 60),
               SizedBox(
                 width: 220,
                 height: 44,
@@ -43,7 +47,9 @@ class SplashScreen extends StatelessWidget {
                 width: 220,
                 height: 44,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).pushReplacementNamed('/register');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black87,
@@ -57,8 +63,9 @@ class SplashScreen extends StatelessWidget {
                   child: const Text('Registrarse'),
                 ),
               ),
-              const SizedBox(height: 28),
-            ],
+              const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,0 +1,68 @@
+// Reglas de seguridad para Firestore - Alquílamelo App (Sin Autenticación)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Permitir acceso completo para desarrollo (SIN AUTENTICACIÓN)
+    // Optimizado para web y mobile
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Reglas específicas para mejor rendimiento web
+    match /properties/{propertyId} {
+      allow read, write: if true;
+    }
+    
+    match /agents/{agentId} {
+      allow read, write: if true;
+    }
+    
+    match /users/{userId} {
+      allow read, write: if true;
+      
+      match /favorites/{favoriteId} {
+        allow read, write: if true;
+      }
+      
+      match /viewed_properties/{viewId} {
+        allow read, write: if true;
+      }
+    }
+    
+    match /contacts/{contactId} {
+      allow read, write: if true;
+    }
+    
+    match /web_test/{testId} {
+      allow read, write: if true;
+    }
+    
+    // Reglas específicas comentadas para referencia futura:
+    
+    // Usuarios - acceso público para desarrollo
+    // match /users/{userId} {
+    //   allow read, write: if true;
+    //   
+    //   // Favoritos del usuario
+    //   match /favorites/{favoriteId} {
+    //     allow read, write: if true;
+    //   }
+    // }
+    
+    // Propiedades - acceso público completo
+    // match /properties/{propertyId} {
+    //   allow read, write: if true;
+    // }
+    
+    // Agentes - acceso público completo
+    // match /agents/{agentId} {
+    //   allow read, write: if true;
+    // }
+    
+    // Contactos - acceso público para desarrollo
+    // match /contacts/{contactId} {
+    //   allow read, write: if true;
+    // }
+  }
+}

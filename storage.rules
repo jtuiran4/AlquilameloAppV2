@@ -1,0 +1,27 @@
+// Reglas de seguridad para Firebase Storage - Alquílamelo App (Sin Autenticación)
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Permitir acceso completo para desarrollo (SIN AUTENTICACIÓN)
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+    
+    // Reglas específicas comentadas para referencia futura:
+    
+    // Imágenes de propiedades - acceso público completo
+    // match /properties/{propertyId}/{allPaths=**} {
+    //   allow read, write: if true;
+    // }
+    
+    // Imágenes de perfil de usuario - acceso público para desarrollo
+    // match /users/{userId}/profile/{allPaths=**} {
+    //   allow read, write: if true;
+    // }
+    
+    // Imágenes de agentes - acceso público completo
+    // match /agents/{agentId}/{allPaths=**} {
+    //   allow read, write: if true;
+    // }
+  }
+}
