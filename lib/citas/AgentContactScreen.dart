@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/app_models.dart';
+import '../services/user_service.dart';
 
 class AgentContactScreen extends StatefulWidget {
   const AgentContactScreen({super.key});
@@ -18,27 +21,103 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
   String _selectedContactMethod = 'WhatsApp';
   String _selectedTimePreference = 'Mañana';
   bool _acceptTerms = false;
+  bool _isLoading = true;
+  bool _isSubmitting = false;
 
-  // Agente por defecto
-  late Agent _currentAgent;
+  // Agente y servicios
+  Agent? _currentAgent;
   Property? _property;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final UserService _userService = UserService();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
+    });
+  }
+
+  Future<void> _initializeData() async {
     // Obtener argumentos de la ruta
     final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _property = arguments?['property'] as Property?;
-    final agent = arguments?['agent'] as Agent?;
     
-    _currentAgent = agent ?? Agent.defaultAgent();
+    // Pre-llenar datos del usuario autenticado
+    await _prefillUserData();
     
-    // Mensaje predeterminado si hay una propiedad
-    if (_property != null && _messageController.text.isEmpty) {
-      _messageController.text = 
-          'Hola, estoy interesado en la propiedad "${_property!.title}" ubicada en ${_property!.location}. '
-          'Me gustaría recibir más información y agendar una cita para visitarla.';
+    if (_property != null) {
+      await _loadAgentData(_property!.agentId);
+      
+      // Mensaje predeterminado si hay una propiedad
+      if (_messageController.text.isEmpty) {
+        _messageController.text = 
+            'Hola, estoy interesado en la propiedad "${_property!.title}" ubicada en ${_property!.location}. '
+            'Me gustaría recibir más información y agendar una cita para visitarla.';
+      }
+    } else {
+      // Si no hay propiedad, usar agente por defecto
+      _currentAgent = Agent.defaultAgent();
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _prefillUserData() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        final userProfileStream = _userService.getUserProfile();
+        final userProfile = await userProfileStream.first;
+        if (userProfile != null) {
+          setState(() {
+            if (userProfile.name.isNotEmpty && _nameController.text.isEmpty) {
+              _nameController.text = userProfile.name;
+            }
+            if (userProfile.email.isNotEmpty && _emailController.text.isEmpty) {
+              _emailController.text = userProfile.email;
+            }
+            if (userProfile.phone.isNotEmpty && _phoneController.text.isEmpty) {
+              _phoneController.text = userProfile.phone;
+            }
+          });
+        }
+      } catch (e) {
+        print('Error pre-llenando datos del usuario: $e');
+      }
+    }
+  }
+
+  Future<void> _loadAgentData(String agentId) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final agentDoc = await _firestore
+          .collection('agents')
+          .doc(agentId)
+          .get();
+
+      if (agentDoc.exists) {
+        setState(() {
+          _currentAgent = Agent.fromFirestore(agentDoc.data()!, agentDoc.id);
+          _isLoading = false;
+        });
+      } else {
+        // Si no se encuentra el agente, usar uno por defecto
+        setState(() {
+          _currentAgent = Agent.defaultAgent();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error cargando datos del agente: $e');
+      setState(() {
+        _currentAgent = Agent.defaultAgent();
+        _isLoading = false;
+      });
     }
   }
 
@@ -72,11 +151,15 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: primary),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Información del agente
             Container(
               width: double.infinity,
@@ -97,11 +180,11 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   // Foto del agente
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: primary.withOpacity(0.1),
-                    backgroundImage: _currentAgent.photoUrl.isNotEmpty 
-                        ? AssetImage(_currentAgent.photoUrl) 
+                    backgroundColor: primary.withValues(alpha: 0.1),
+                    backgroundImage: _currentAgent?.photoUrl.isNotEmpty == true 
+                        ? AssetImage(_currentAgent!.photoUrl) 
                         : null,
-                    child: _currentAgent.photoUrl.isEmpty 
+                    child: _currentAgent?.photoUrl.isEmpty != false 
                         ? Icon(Icons.person, size: 50, color: primary)
                         : null,
                   ),
@@ -109,7 +192,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   
                   // Nombre del agente
                   Text(
-                    _currentAgent.name,
+                    _currentAgent?.name ?? 'Agente',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -119,7 +202,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   
                   // Cargo
                   Text(
-                    _currentAgent.position,
+                    _currentAgent?.position ?? 'Agente Inmobiliario',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey.shade600,
@@ -131,9 +214,9 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildAgentStat(Icons.star, '${_currentAgent.rating}', 'Rating'),
-                      _buildAgentStat(Icons.home_work, '${_currentAgent.propertiesSold}', 'Vendidas'),
-                      _buildAgentStat(Icons.access_time, '${_currentAgent.yearsExperience}', 'Años Exp.'),
+                      _buildAgentStat(Icons.star, '${_currentAgent?.rating ?? 5.0}', 'Rating'),
+                      _buildAgentStat(Icons.home_work, '${_currentAgent?.propertiesSold ?? 0}', 'Vendidas'),
+                      _buildAgentStat(Icons.access_time, '${_currentAgent?.yearsExperience ?? 0}', 'Años Exp.'),
                     ],
                   ),
                   const SizedBox(height: 15),
@@ -260,68 +343,6 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                     ),
                     const SizedBox(height: 20),
                     
-                    // Nombre
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre completo *',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa tu nombre';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    // Teléfono
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Teléfono *',
-                        prefixIcon: const Icon(Icons.phone_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa tu teléfono';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    // Email
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Correo electrónico *',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa tu correo';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                          return 'Por favor ingresa un correo válido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    
                     // Método de contacto preferido
                     const Text(
                       'Método de contacto preferido',
@@ -421,7 +442,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _acceptTerms ? _submitForm : null,
+                        onPressed: (_acceptTerms && !_isSubmitting) ? _submitForm : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           foregroundColor: Colors.white,
@@ -430,22 +451,31 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                           ),
                           disabledBackgroundColor: Colors.grey.shade300,
                         ),
-                        child: const Text(
-                          'Enviar Solicitud',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Enviar Solicitud',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -472,28 +502,6 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
     );
   }
 
-  Widget _buildContactButton(IconData icon, String label, VoidCallback onPressed) {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF88245),
-            foregroundColor: Colors.white,
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.all(15),
-          ),
-          child: Icon(icon, size: 24),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12),
-        ),
-      ],
-    );
-  }
-
   String _formatPrice(double price) {
     if (price >= 1000000) {
       return '\$${(price / 1000000).toStringAsFixed(1)}M';
@@ -503,92 +511,113 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
     return '\$${price.toStringAsFixed(0)}';
   }
 
-  void _showContactDialog(String method, String contact) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$method del agente'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('¿Deseas contactar por $method?'),
-            const SizedBox(height: 10),
-            Text(
-              contact,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFF88245),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Abriendo $method...')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF88245),
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Abrir $method'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // Simular envío del formulario
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('¡Solicitud Enviada!'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 60,
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      try {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        String userId = currentUser?.uid ?? 'anonymous';
+        String userName = _nameController.text.trim();
+        String userEmail = _emailController.text.trim();
+        String userPhone = _phoneController.text.trim();
+
+        // Si hay usuario autenticado, obtener su información
+        if (currentUser != null) {
+          try {
+            final userProfileStream = _userService.getUserProfile();
+            final userProfile = await userProfileStream.first;
+            if (userProfile != null) {
+              userName = userProfile.name.isNotEmpty ? userProfile.name : userName;
+              userEmail = userProfile.email.isNotEmpty ? userProfile.email : userEmail;
+              userPhone = userProfile.phone.isNotEmpty ? userProfile.phone : userPhone;
+            }
+          } catch (e) {
+            print('Error obteniendo perfil de usuario: $e');
+          }
+        }
+
+        // Crear consulta en Firestore
+        final inquiry = PropertyInquiry(
+          id: '', // Se asignará automáticamente
+          propertyId: _property?.id ?? '',
+          propertyTitle: _property?.title ?? 'Consulta general',
+          propertyLocation: _property?.location ?? '',
+          userId: userId,
+          userName: userName,
+          userEmail: userEmail,
+          userPhone: userPhone,
+          agentId: _currentAgent?.id ?? '',
+          message: _messageController.text.trim(),
+          status: 'pending',
+          createdAt: DateTime.now(),
+        );
+
+        await _firestore.collection('contacts').add(inquiry.toFirestore());
+
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+
+          // Mostrar diálogo de éxito
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('¡Solicitud Enviada!'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 60,
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    'Tu solicitud ha sido enviada a ${_currentAgent?.name ?? 'nuestro agente'}.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Te contactaremos por $_selectedContactMethod en el horario $_selectedTimePreference.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
               ),
-              const SizedBox(height: 15),
-              Text(
-                'Tu solicitud ha sido enviada a ${_currentAgent.name}.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Te contactaremos por $_selectedContactMethod en el horario $_selectedTimePreference.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Cerrar diálogo
-                Navigator.pop(context); // Volver a la pantalla anterior
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF88245),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Continuar'),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Cerrar diálogo
+                    Navigator.pop(context); // Volver a la pantalla anterior
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF88245),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Continuar'),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al enviar la solicitud: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 }

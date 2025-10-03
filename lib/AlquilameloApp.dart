@@ -1,3 +1,6 @@
+import 'package:alquilamelo_app/agent/AgentDashboard.dart';
+import 'package:alquilamelo_app/agent/AgentLoginScreen.dart';
+import 'package:alquilamelo_app/agent/AgentRegisterScreen.dart';
 import 'package:alquilamelo_app/auth/LoginScreen.dart';
 import 'package:alquilamelo_app/auth/RegisterScreen.dart';
 import 'package:alquilamelo_app/citas/AgentContactScreen.dart';
@@ -31,6 +34,9 @@ class AlquilameloApp extends StatelessWidget {
         '/favorites': (context) => const FavoritesScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/agent-contact': (context) => const AgentContactScreen(),
+        '/agent-dashboard': (context) => const AgentDashboard(),
+        '/agent-login': (context) => const AgentLoginScreen(),
+        '/agent-register': (context) => const AgentRegisterScreen(),
         },
     );
 

@@ -17,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // Controladores de texto
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _dateOfBirthController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -30,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _phoneController.dispose();
     _dateOfBirthController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -122,6 +124,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon: Icons.person_outline,
                   hint: "Apellido",
                   validator: (value) => _authService.validateName(value ?? ''),
+                ),
+                const SizedBox(height: 12),
+
+                _buildTextFormField(
+                  controller: _phoneController,
+                  icon: Icons.phone_outlined,
+                  hint: "Número de teléfono",
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'El número de teléfono es obligatorio';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'El número debe tener al menos 10 dígitos';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 12),
 
@@ -281,6 +300,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
+        phone: _phoneController.text.trim(),
         dateOfBirth: _dateOfBirthController.text.trim(),
       );
 

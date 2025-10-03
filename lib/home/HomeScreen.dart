@@ -466,24 +466,26 @@ class _HomeScreenState extends State<HomeScreen> {
               Positioned(
                 top: 10,
                 left: 10,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      property.isFavorite = !property.isFavorite;
-                    });
+                child: FutureBuilder<bool>(
+                  future: _propertyService.isFavorite(property.id),
+                  builder: (context, snapshot) {
+                    bool isFavorite = snapshot.data ?? false;
+                    return GestureDetector(
+                      onTap: () => _toggleFavorite(property),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorite ? Colors.red : Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    );
                   },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      property.isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: property.isFavorite ? Colors.red : Colors.white,
-                      size: 20,
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -826,6 +828,42 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  // Método para toggle de favoritos
+  void _toggleFavorite(Property property) async {
+    try {
+      await _propertyService.toggleFavorite(property.id);
+      
+      if (mounted) {
+        bool isFavorite = await _propertyService.isFavorite(property.id);
+        String message = isFavorite 
+            ? '${property.title} agregado a favoritos' 
+            : '${property.title} removido de favoritos';
+            
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: isFavorite ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        
+        // Actualizar la UI
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = e.toString();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 

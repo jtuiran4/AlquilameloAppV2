@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_models.dart';
 
 class PropertyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Obtener todas las propiedades (método simple sin índices)
   Stream<List<Property>> getAllPropertiesSimple() {
@@ -136,121 +138,59 @@ class PropertyService {
     }
   }
 
-  // Agregar propiedad a favoritos (sin autenticación)
-  Future<bool> addToFavorites(String propertyId) async {
-    try {
-      // Usar ID de usuario mock para desarrollo
-      const String mockUserId = 'demo-user-123';
+  // ========== SISTEMA DE FAVORITOS CON AUTENTICACIÓN ==========
 
-      // Agregar a la subcolección de favoritos del usuario
-      await _firestore
-          .collection('users')
-          .doc(mockUserId)
-          .collection('favorites')
-          .doc(propertyId)
-          .set({
-        'propertyId': propertyId,
-        'addedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Incrementar contador de favoritos en el usuario
-      await _firestore.collection('users').doc(mockUserId).update({
-        'statistics.favoritesCount': FieldValue.increment(1),
-      });
-
-      // Incrementar contador de favoritos en la propiedad
-      await _firestore.collection('properties').doc(propertyId).update({
-        'favoritesCount': FieldValue.increment(1),
-      });
-
-      return true;
-    } catch (e) {
-      print('Error al agregar a favoritos: $e');
-      return false;
-    }
-  }
-
-  // Quitar propiedad de favoritos (sin autenticación)
-  Future<bool> removeFromFavorites(String propertyId) async {
-    try {
-      // Usar ID de usuario mock para desarrollo
-      const String mockUserId = 'demo-user-123';
-
-      // Remover de la subcolección de favoritos del usuario
-      await _firestore
-          .collection('users')
-          .doc(mockUserId)
-          .collection('favorites')
-          .doc(propertyId)
-          .delete();
-
-      // Decrementar contador de favoritos en el usuario
-      await _firestore.collection('users').doc(mockUserId).update({
-        'statistics.favoritesCount': FieldValue.increment(-1),
-      });
-
-      // Decrementar contador de favoritos en la propiedad
-      await _firestore.collection('properties').doc(propertyId).update({
-        'favoritesCount': FieldValue.increment(-1),
-      });
-
-      return true;
-    } catch (e) {
-      print('Error al quitar de favoritos: $e');
-      return false;
-    }
-  }
-
-  // Obtener propiedades favoritas del usuario (sin autenticación)
+  // Obtener propiedades favoritas del usuario autenticado
   Stream<List<Property>> getFavoriteProperties() {
-    // Usar ID de usuario mock para desarrollo
-    const String mockUserId = 'demo-user-123';
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return Stream.value([]); // Retornar lista vacía si no está autenticado
+    }
 
     return _firestore
         .collection('users')
-        .doc(mockUserId)
+        .doc(currentUser.uid)
         .collection('favorites')
         .snapshots()
         .asyncMap((snapshot) async {
-      List<Property> favoriteProperties = [];
-      
-      // Crear lista de documentos con timestamp para ordenar
-      List<Map<String, dynamic>> docsWithTimestamp = snapshot.docs.map((doc) {
-        var data = doc.data();
-        return {
-          'propertyId': data['propertyId'],
-          'addedAt': data['addedAt'] ?? Timestamp.now(),
-        };
-      }).toList();
-      
-      // Ordenar por fecha de agregado (más recientes primero)
-      docsWithTimestamp.sort((a, b) {
-        Timestamp timeA = a['addedAt'];
-        Timestamp timeB = b['addedAt'];
-        return timeB.compareTo(timeA);
-      });
-
-      for (var docData in docsWithTimestamp) {
-        String propertyId = docData['propertyId'];
-        Property? property = await getProperty(propertyId);
-        if (property != null) {
-          favoriteProperties.add(property);
-        }
-      }
-
-      return favoriteProperties;
-    });
+          List<Property> favoriteProperties = [];
+          
+          for (var doc in snapshot.docs) {
+            String propertyId = doc.data()['propertyId'] as String;
+            Property? property = await getProperty(propertyId);
+            if (property != null && property.isActive) {
+              favoriteProperties.add(property);
+            }
+          }
+          
+          // Ordenar por fecha de agregado (más recientes primero)
+          favoriteProperties.sort((a, b) {
+            var aTimestamp = snapshot.docs
+                .firstWhere((doc) => doc.data()['propertyId'] == a.id)
+                .data()['addedAt'] as Timestamp?;
+            var bTimestamp = snapshot.docs
+                .firstWhere((doc) => doc.data()['propertyId'] == b.id)
+                .data()['addedAt'] as Timestamp?;
+                
+            if (aTimestamp == null && bTimestamp == null) return 0;
+            if (aTimestamp == null) return 1;
+            if (bTimestamp == null) return -1;
+            return bTimestamp.compareTo(aTimestamp);
+          });
+          
+          return favoriteProperties;
+        });
   }
 
-  // Verificar si una propiedad está en favoritos (sin autenticación)
+  // Verificar si una propiedad es favorita del usuario actual
   Future<bool> isFavorite(String propertyId) async {
     try {
-      // Usar ID de usuario mock para desarrollo
-      const String mockUserId = 'demo-user-123';
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
 
       DocumentSnapshot doc = await _firestore
           .collection('users')
-          .doc(mockUserId)
+          .doc(currentUser.uid)
           .collection('favorites')
           .doc(propertyId)
           .get();
@@ -262,25 +202,98 @@ class PropertyService {
     }
   }
 
-  // Incrementar contador de vistas (sin autenticación)
+  // Agregar propiedad a favoritos
+  Future<bool> addToFavorites(String propertyId) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw 'Usuario no autenticado. Por favor inicia sesión.';
+      }
+
+      await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('favorites')
+          .doc(propertyId)
+          .set({
+        'propertyId': propertyId,
+        'addedAt': FieldValue.serverTimestamp(),
+        'userId': currentUser.uid,
+      });
+
+      print('✅ Propiedad $propertyId agregada a favoritos');
+      return true;
+    } catch (e) {
+      print('❌ Error al agregar a favoritos: $e');
+      throw 'Error al agregar a favoritos: $e';
+    }
+  }
+
+  // Quitar propiedad de favoritos
+  Future<bool> removeFromFavorites(String propertyId) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw 'Usuario no autenticado. Por favor inicia sesión.';
+      }
+
+      await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('favorites')
+          .doc(propertyId)
+          .delete();
+
+      print('✅ Propiedad $propertyId removida de favoritos');
+      return true;
+    } catch (e) {
+      print('❌ Error al remover de favoritos: $e');
+      throw 'Error al remover de favoritos: $e';
+    }
+  }
+
+  // Toggle favorito (agregar si no está, quitar si está)
+  Future<bool> toggleFavorite(String propertyId) async {
+    try {
+      bool isCurrentlyFavorite = await isFavorite(propertyId);
+      
+      if (isCurrentlyFavorite) {
+        await removeFromFavorites(propertyId);
+        return false; // Ya no es favorito
+      } else {
+        await addToFavorites(propertyId);
+        return true; // Ahora es favorito
+      }
+    } catch (e) {
+      print('❌ Error al toggle favorito: $e');
+      rethrow;
+    }
+  }
+
+  // ========== ESTADÍSTICAS Y MÉTRICAS ==========
+
+  // Incrementar contador de vistas
   Future<void> incrementViewCount(String propertyId) async {
     try {
+      User? currentUser = _auth.currentUser;
+      
       // Incrementar vistas en la propiedad
       await _firestore.collection('properties').doc(propertyId).update({
         'viewsCount': FieldValue.increment(1),
       });
 
-      // Incrementar contador en usuario mock
-      const String mockUserId = 'demo-user-123';
-      await _firestore.collection('users').doc(mockUserId).update({
-        'statistics.viewedProperties': FieldValue.increment(1),
-      });
+      // Si hay usuario autenticado, incrementar sus estadísticas
+      if (currentUser != null) {
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'statistics.viewedProperties': FieldValue.increment(1),
+        });
+      }
     } catch (e) {
       print('Error al incrementar vistas: $e');
     }
   }
 
-  // Registrar contacto con agente (sin autenticación)
+  // Registrar contacto con agente
   Future<bool> contactAgent({
     required String propertyId,
     required String agentId,
@@ -288,12 +301,14 @@ class PropertyService {
     required String contactMethod,
   }) async {
     try {
-      // Usar ID de usuario mock para desarrollo
-      const String mockUserId = 'demo-user-123';
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw 'Usuario no autenticado. Por favor inicia sesión para contactar agentes.';
+      }
 
       // Crear documento de contacto
       await _firestore.collection('contacts').add({
-        'userId': mockUserId,
+        'userId': currentUser.uid,
         'propertyId': propertyId,
         'agentId': agentId,
         'message': message,
@@ -303,14 +318,14 @@ class PropertyService {
       });
 
       // Incrementar contador en el usuario
-      await _firestore.collection('users').doc(mockUserId).update({
+      await _firestore.collection('users').doc(currentUser.uid).update({
         'statistics.contactedAgents': FieldValue.increment(1),
       });
 
       return true;
     } catch (e) {
       print('Error al contactar agente: $e');
-      return false;
+      rethrow;
     }
   }
 }

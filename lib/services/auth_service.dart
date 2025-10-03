@@ -18,6 +18,7 @@ class AuthService {
     required String password,
     required String firstName,
     required String lastName,
+    required String phone,
     required String dateOfBirth,
   }) async {
     try {
@@ -45,7 +46,7 @@ class AuthService {
           id: user.uid,
           name: '$firstName $lastName',
           email: email,
-          phone: '',
+          phone: phone,
           profileImage: '',
           memberSince: DateTime.now().year.toString(),
           notificationsEnabled: true,

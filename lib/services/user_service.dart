@@ -1,182 +1,216 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_models.dart';
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
-  // ID de usuario demo (ya que no tenemos autenticación)
-  static const String demoUserId = 'demo-user-123';
-  
-  // Obtener perfil de usuario
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Obtener perfil de usuario autenticado
   Stream<UserProfile?> getUserProfile() {
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return Stream.value(null);
+    }
+    
     return _firestore
         .collection('users')
-        .doc(demoUserId)
+        .doc(currentUser.uid)
         .snapshots()
         .map((doc) {
       if (doc.exists) {
         return UserProfile.fromFirestore(doc);
+      } else {
+        // Crear perfil automáticamente si no existe
+        _createUserProfileFromAuth(currentUser);
+        return UserProfile(
+          id: currentUser.uid,
+          email: currentUser.email ?? '',
+          name: currentUser.displayName ?? 'Usuario',
+          phone: '',
+          memberSince: '2024',
+          createdAt: DateTime.now(),
+        );
       }
-      return null;
     });
   }
-  
+
+  // Crear perfil de usuario desde Firebase Auth
+  Future<void> _createUserProfileFromAuth(User user) async {
+    try {
+      final userProfile = UserProfile(
+        id: user.uid,
+        name: user.displayName ?? 'Usuario',
+        email: user.email ?? '',
+        phone: '',
+        memberSince: DateTime.now().year.toString(),
+        createdAt: DateTime.now(),
+      );
+
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(userProfile.toFirestore());
+      
+      print('✅ Perfil de usuario creado: ${user.email}');
+    } catch (e) {
+      print('❌ Error creando perfil de usuario: $e');
+    }
+  }
+
   // Crear o actualizar perfil de usuario
   Future<void> updateUserProfile(UserProfile profile) async {
     try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw 'Usuario no autenticado';
+      }
+
       await _firestore
           .collection('users')
-          .doc(demoUserId)
+          .doc(currentUser.uid)
           .set(profile.toFirestore(), SetOptions(merge: true));
+      
+      print('✅ Perfil actualizado correctamente');
     } catch (e) {
-      print('Error updating user profile: $e');
+      print('❌ Error updating user profile: $e');
       rethrow;
     }
   }
-  
-  // Obtener estadísticas del usuario
+
+  // Obtener estadísticas del usuario autenticado
   Future<UserStats> getUserStats() async {
     try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        return UserStats(favoriteCount: 0, viewedCount: 0, contactedAgents: 0);
+      }
+
       // Obtener favoritos
       final favoritesSnapshot = await _firestore
           .collection('users')
-          .doc(demoUserId)
+          .doc(currentUser.uid)
           .collection('favorites')
           .get();
-      
-      // Obtener propiedades vistas (simulado por ahora)
-      final viewedSnapshot = await _firestore
+
+      // Obtener documento del usuario para estadísticas
+      final userDoc = await _firestore
           .collection('users')
-          .doc(demoUserId)
-          .collection('viewed_properties')
+          .doc(currentUser.uid)
           .get();
-      
-      // Obtener contactos con agentes
-      final contactsSnapshot = await _firestore
-          .collection('contacts')
-          .where('userId', isEqualTo: demoUserId)
-          .get();
-      
+
+      int viewedCount = 0;
+      int contactedAgents = 0;
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final stats = userData['statistics'] as Map<String, dynamic>? ?? {};
+        viewedCount = stats['viewedProperties'] ?? 0;
+        contactedAgents = stats['contactedAgents'] ?? 0;
+      }
+
       return UserStats(
         favoriteCount: favoritesSnapshot.docs.length,
-        viewedCount: viewedSnapshot.docs.length,
-        contactedAgents: contactsSnapshot.docs.length,
+        viewedCount: viewedCount,
+        contactedAgents: contactedAgents,
       );
     } catch (e) {
-      print('Error getting user stats: $e');
-      // Retornar estadísticas por defecto en caso de error
+      print('❌ Error obteniendo estadísticas: $e');
       return UserStats(favoriteCount: 0, viewedCount: 0, contactedAgents: 0);
     }
   }
-  
-  // Agregar propiedad a las vistas
-  Future<void> addViewedProperty(String propertyId) async {
+
+  // Obtener propiedades contactadas por el usuario
+  Future<List<Property>> getContactedProperties() async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(demoUserId)
-          .collection('viewed_properties')
-          .doc(propertyId)
-          .set({
-        'propertyId': propertyId,
-        'viewedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return [];
+
+      // Obtener contactos del usuario
+      final contactsSnapshot = await _firestore
+          .collection('contacts')
+          .where('userId', isEqualTo: currentUser.uid)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      List<Property> contactedProperties = [];
+      
+      for (var contact in contactsSnapshot.docs) {
+        final propertyId = contact.data()['propertyId'] as String;
+        final propertyDoc = await _firestore
+            .collection('properties')
+            .doc(propertyId)
+            .get();
+            
+        if (propertyDoc.exists) {
+          final property = Property.fromFirestore(
+            propertyDoc.data() as Map<String, dynamic>, 
+            propertyDoc.id
+          );
+          contactedProperties.add(property);
+        }
+      }
+
+      return contactedProperties;
     } catch (e) {
-      print('Error adding viewed property: $e');
+      print('❌ Error obteniendo propiedades contactadas: $e');
+      return [];
     }
   }
-  
-  // Obtener configuraciones del usuario
-  Stream<UserSettings> getUserSettings() {
-    return _firestore
-        .collection('users')
-        .doc(demoUserId)
-        .snapshots()
-        .map((doc) {
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        return UserSettings(
-          notificationsEnabled: data['notificationsEnabled'] ?? true,
-          darkModeEnabled: data['darkModeEnabled'] ?? false,
-          preferredLanguage: data['preferredLanguage'] ?? 'Español',
-        );
-      }
-      return UserSettings(
-        notificationsEnabled: true,
-        darkModeEnabled: false,
-        preferredLanguage: 'Español',
-      );
-    });
+
+  // Inicializar usuario demo (ya no se usa, solo para compatibilidad)
+  @deprecated
+  Future<void> initializeDemoUser() async {
+    // Este método ya no hace nada, se mantiene para compatibilidad
+    print('⚠️  initializeDemoUser está deprecated, ahora se usa Firebase Auth');
   }
-  
-  // Actualizar configuraciones del usuario
-  Future<void> updateUserSettings(UserSettings settings) async {
+
+  // Cerrar sesión
+  Future<void> signOut() async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(demoUserId)
-          .set({
-        'notificationsEnabled': settings.notificationsEnabled,
-        'darkModeEnabled': settings.darkModeEnabled,
-        'preferredLanguage': settings.preferredLanguage,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await _auth.signOut();
+      print('✅ Sesión cerrada correctamente');
     } catch (e) {
-      print('Error updating user settings: $e');
+      print('❌ Error cerrando sesión: $e');
       rethrow;
     }
   }
-  
-  // Inicializar perfil de usuario demo
-  Future<void> initializeDemoUser() async {
-    try {
-      final userDoc = await _firestore.collection('users').doc(demoUserId).get();
-      
-      if (!userDoc.exists) {
-        final demoProfile = UserProfile(
-          id: demoUserId,
-          name: 'Juan Carlos Pérez',
-          email: 'juan.perez@email.com',
-          phone: '+57 300 123 4567',
-          profileImage: '',
-          memberSince: '2023',
-          notificationsEnabled: true,
-          darkModeEnabled: false,
-          preferredLanguage: 'Español',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-        
-        await updateUserProfile(demoProfile);
-        print('Demo user profile initialized');
-      }
-    } catch (e) {
-      print('Error initializing demo user: $e');
-    }
+
+  // Obtener usuario actual
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
+
+  // Stream del estado de autenticación
+  Stream<User?> get authStateChanges {
+    return _auth.authStateChanges();
+  }
+
+  // Verificar si el usuario está autenticado
+  bool get isAuthenticated {
+    return _auth.currentUser != null;
+  }
+
+  // Obtener email del usuario actual
+  String? get currentUserEmail {
+    return _auth.currentUser?.email;
+  }
+
+  // Obtener UID del usuario actual
+  String? get currentUserId {
+    return _auth.currentUser?.uid;
   }
 }
 
-// Clases auxiliares para manejo de datos
+// Clase para estadísticas del usuario
 class UserStats {
   final int favoriteCount;
   final int viewedCount;
   final int contactedAgents;
-  
+
   UserStats({
     required this.favoriteCount,
     required this.viewedCount,
     required this.contactedAgents,
-  });
-}
-
-class UserSettings {
-  final bool notificationsEnabled;
-  final bool darkModeEnabled;
-  final String preferredLanguage;
-  
-  UserSettings({
-    required this.notificationsEnabled,
-    required this.darkModeEnabled,
-    required this.preferredLanguage,
   });
 }

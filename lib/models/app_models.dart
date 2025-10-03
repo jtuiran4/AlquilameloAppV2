@@ -25,6 +25,17 @@ class Property {
 
   // Getter para compatibilidad con código existente
   int get rooms => bedrooms;
+  
+  // Getter para precio formateado
+  String get priceFormatted {
+    if (price >= 1000000) {
+      return '${(price / 1000000).toStringAsFixed(1)}M';
+    } else if (price >= 1000) {
+      return '${(price / 1000).toStringAsFixed(0)}K';
+    } else {
+      return price.toStringAsFixed(0);
+    }
+  }
 
   Property({
     required this.id,
@@ -250,4 +261,93 @@ class UserProfile {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
     };
   }
+}
+
+class PropertyInquiry {
+  final String id;
+  final String propertyId;
+  final String propertyTitle;
+  final String propertyLocation;
+  final String userId;
+  final String userName;
+  final String userEmail;
+  final String userPhone;
+  final String agentId;
+  final String message;
+  final String status; // 'pending', 'in_progress', 'completed'
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+
+  PropertyInquiry({
+    required this.id,
+    required this.propertyId,
+    required this.propertyTitle,
+    required this.propertyLocation,
+    required this.userId,
+    required this.userName,
+    required this.userEmail,
+    required this.userPhone,
+    required this.agentId,
+    required this.message,
+    this.status = 'pending',
+    required this.createdAt,
+    this.updatedAt,
+  });
+
+  // Convertir desde Firestore
+  factory PropertyInquiry.fromFirestore(Map<String, dynamic> data, String id) {
+    return PropertyInquiry(
+      id: id,
+      propertyId: data['propertyId'] ?? '',
+      propertyTitle: data['propertyTitle'] ?? '',
+      propertyLocation: data['propertyLocation'] ?? '',
+      userId: data['userId'] ?? '',
+      userName: data['userName'] ?? '',
+      userEmail: data['userEmail'] ?? '',
+      userPhone: data['userPhone'] ?? '',
+      agentId: data['agentId'] ?? '',
+      message: data['message'] ?? '',
+      status: data['status'] ?? 'pending',
+      createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
+      updatedAt: data['updatedAt']?.toDate(),
+    );
+  }
+
+  // Convertir a Map para Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'propertyId': propertyId,
+      'propertyTitle': propertyTitle,
+      'propertyLocation': propertyLocation,
+      'userId': userId,
+      'userName': userName,
+      'userEmail': userEmail,
+      'userPhone': userPhone,
+      'agentId': agentId,
+      'message': message,
+      'status': status,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+}
+
+class AgentStats {
+  final int totalProperties;
+  final int activeProperties;
+  final int totalInquiries;
+  final int pendingInquiries;
+  final int completedInquiries;
+  final double averageRating;
+  final int totalViews;
+
+  AgentStats({
+    this.totalProperties = 0,
+    this.activeProperties = 0,
+    this.totalInquiries = 0,
+    this.pendingInquiries = 0,
+    this.completedInquiries = 0,
+    this.averageRating = 0.0,
+    this.totalViews = 0,
+  });
 }
