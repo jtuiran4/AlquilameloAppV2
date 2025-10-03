@@ -33,70 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Datos de ejemplo de propiedades (como fallback)
-  final List<Property> _fallbackProperties = [
-    Property(
-      id: '1',
-      title: 'Apartamento Moderno en El Poblado',
-      description: 'Hermoso apartamento de 2 habitaciones con vista panorámica',
-      price: 450000000,
-      action: 'Venta',
-      type: 'Apartamento',
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 85,
-      location: 'El Poblado, Medellín',
-      imageUrl: 'assets/hotel_room.jpg',
-      agentId: '1',
-      isFavorite: false,
-    ),
-    Property(
-      id: '2',
-      title: 'Casa Familiar en Laureles',
-      description: 'Casa de 3 pisos con jardín privado y garaje para 2 carros',
-      price: 2500000,
-      action: 'Arriendo',
-      type: 'Casa',
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 180,
-      location: 'Laureles, Medellín',
-      imageUrl: 'assets/hotel.png',
-      agentId: '2',
-      isFavorite: true,
-    ),
-    Property(
-      id: '3',
-      title: 'Apartaestudio en Sabaneta',
-      description: 'Moderno apartaestudio completamente amoblado',
-      price: 1800000,
-      action: 'Arriendo',
-      type: 'Apartamento',
-      bedrooms: 1,
-      bathrooms: 1,
-      area: 45,
-      location: 'Sabaneta, Antioquia',
-      imageUrl: 'assets/hotel2.jpg',
-      agentId: '3',
-      isFavorite: false,
-    ),
-    Property(
-      id: '4',
-      title: 'Casa Campestre en La Ceja',
-      description: 'Hermosa casa campestre con piscina y zona verde',
-      price: 850000000,
-      action: 'Venta',
-      type: 'Casa',
-      bedrooms: 5,
-      bathrooms: 4,
-      area: 350,
-      location: 'La Ceja, Antioquia',
-      imageUrl: 'assets/hotel_room.jpg',
-      agentId: '1',
-      isFavorite: false,
-    ),
-  ];
-
   List<Property> _filterProperties(List<Property> properties) {
     return properties.where((property) {
       bool matchesSearch = property.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
@@ -233,106 +169,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 if (snapshot.hasError) {
                   print('Error en Firebase: ${snapshot.error}');
-                  // Usar datos de fallback en caso de error
-                  final filteredProperties = _filterProperties(_fallbackProperties);
-                  return Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          border: Border.all(color: Colors.orange.shade200),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.warning_amber, color: Colors.orange.shade600),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Error de conexión con Firebase. Mostrando datos de ejemplo.',
-                                style: TextStyle(
-                                  color: Colors.orange.shade700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(child: _buildPropertiesList(filteredProperties, true)),
-                    ],
+                  return _buildEmptyState(
+                    'Error de conexión',
+                    'No se pudieron cargar las propiedades desde Firebase. Verifica tu conexión a internet.',
+                    Icons.error_outline,
+                    Colors.red,
                   );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  // Mostrar datos de fallback mientras se cargan los datos de Firebase
-                  final filteredProperties = _filterProperties(_fallbackProperties);
-                  return Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          border: Border.all(color: Colors.blue.shade200),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.blue.shade600),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'No hay propiedades en Firebase. Inicializando datos...',
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(child: _buildPropertiesList(filteredProperties, true)),
-                    ],
+                  return _buildEmptyState(
+                    'No hay propiedades disponibles',
+                    'Aún no hay propiedades registradas en la plataforma. ¡Pronto tendremos muchas opciones para ti!',
+                    Icons.home_outlined,
+                    const Color(0xFFF88245),
                   );
                 }
 
-                // Usar datos de Firebase exitosamente
+                // Mostrar datos de Firebase
                 final filteredProperties = _filterProperties(snapshot.data!);
-                return Column(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        border: Border.all(color: Colors.green.shade200),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.cloud_done, color: Colors.green.shade600, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            '🔥 Conectado a Firebase - ${snapshot.data!.length} propiedades',
-                            style: TextStyle(
-                              color: Colors.green.shade700,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(child: _buildPropertiesList(filteredProperties, false)),
-                  ],
-                );
+                
+                if (filteredProperties.isEmpty) {
+                  return _buildEmptyState(
+                    'No se encontraron resultados',
+                    'No hay propiedades que coincidan con tus filtros de búsqueda. Intenta ajustar los criterios.',
+                    Icons.search_off,
+                    Colors.grey,
+                  );
+                }
+                
+                return _buildPropertiesList(filteredProperties);
               },
             ),
           ),
@@ -774,59 +640,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPropertiesList(List<Property> properties, bool isUsingFallback) {
-    if (properties.isEmpty) {
-      return Center(
+  Widget _buildPropertiesList(List<Property> properties) {
+    return Expanded(
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: properties.length,
+        itemBuilder: (context, index) {
+          return _buildPropertyCard(properties[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String message, IconData icon, Color color) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off, size: 80, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              'No se encontraron propiedades',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            if (isUsingFallback) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Usando datos de ejemplo (sin conexión a Firebase)',
-                style: TextStyle(fontSize: 12, color: Colors.orange.shade600),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        if (isUsingFallback)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            color: Colors.orange.shade100,
-            child: Text(
-              '⚠️ Usando datos de ejemplo - Firebase no disponible',
+            Icon(icon, size: 80, color: color.withOpacity(0.5)),
+            const SizedBox(height: 24),
+            Text(
+              title,
               style: TextStyle(
-                color: Colors.orange.shade800,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
               textAlign: TextAlign.center,
             ),
-          ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: properties.length,
-            itemBuilder: (context, index) {
-              final property = properties[index];
-              return _buildPropertyCard(property);
-            },
-          ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

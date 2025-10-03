@@ -28,15 +28,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/alquilamelologo.png',
-              height: 28,
-              width: 28,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.home, size: 28, color: Colors.white);
-              },
-            ),
             const SizedBox(width: 8),
             const Text(
               'Mis Favoritos',
