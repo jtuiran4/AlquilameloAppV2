@@ -221,7 +221,7 @@ class PropertyService {
         'userId': currentUser.uid,
       });
 
-      print('✅ Propiedad $propertyId agregada a favoritos');
+      // Favorito agregado
       return true;
     } catch (e) {
       print('❌ Error al agregar a favoritos: $e');
@@ -244,7 +244,7 @@ class PropertyService {
           .doc(propertyId)
           .delete();
 
-      print('✅ Propiedad $propertyId removida de favoritos');
+      // Favorito removido
       return true;
     } catch (e) {
       print('❌ Error al remover de favoritos: $e');

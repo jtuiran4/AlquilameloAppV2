@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _dataSeeder.seedInitialData();
     } catch (e) {
-      print('Error al inicializar datos de Firebase: $e');
+      // Error de inicialización silenciado
     }
   }
 
@@ -168,7 +168,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  print('Error en Firebase: ${snapshot.error}');
                   return _buildEmptyState(
                     'Error de conexión',
                     'No se pudieron cargar las propiedades desde Firebase. Verifica tu conexión a internet.',

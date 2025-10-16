@@ -22,22 +22,16 @@ class AuthService {
     required String dateOfBirth,
   }) async {
     try {
-      print('🔐 Iniciando registro para: $email');
-      
       // Verificar si Firebase Auth está disponible
       if (_auth.app.options.projectId.isEmpty) {
         throw 'Firebase Auth no está configurado correctamente';
       }
-      
-      print('🔥 Firebase Auth disponible, creando usuario...');
       
       // Crear usuario en Firebase Auth
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
-      print('✅ Usuario creado en Firebase Auth: ${userCredential.user?.uid}');
 
       User? user = userCredential.user;
       if (user != null) {
@@ -57,29 +51,20 @@ class AuthService {
         );
 
         // Guardar perfil en Firestore
-        print('📝 Creando perfil del usuario en Firestore...');
-        print('💾 Guardando en Firestore: users/${user.uid}');
-        
         await _firestore
             .collection('users')
             .doc(user.uid)
             .set(userProfile.toFirestore());
 
-        print('✅ Perfil guardado exitosamente en Firestore');
-
         // Actualizar nombre de usuario en Firebase Auth
-        print('👤 Actualizando nombre de usuario en Firebase Auth...');
         await user.updateDisplayName('$firstName $lastName');
 
-        print('🎉 Registro completado exitosamente!');
         return userProfile;
       }
       return null;
     } on FirebaseAuthException catch (e) {
-      print('❌ Firebase Auth Error: ${e.code} - ${e.message}');
       throw _getAuthErrorMessage(e.code);
     } catch (e) {
-      print('❌ Error inesperado durante el registro: $e');
       throw 'Error inesperado durante el registro: $e';
     }
   }

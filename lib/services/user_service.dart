@@ -52,7 +52,7 @@ class UserService {
           .doc(user.uid)
           .set(userProfile.toFirestore());
       
-      print('✅ Perfil de usuario creado: ${user.email}');
+      // Perfil creado
     } catch (e) {
       print('❌ Error creando perfil de usuario: $e');
     }
@@ -71,7 +71,7 @@ class UserService {
           .doc(currentUser.uid)
           .set(profile.toFirestore(), SetOptions(merge: true));
       
-      print('✅ Perfil actualizado correctamente');
+      // Perfil actualizado
     } catch (e) {
       print('❌ Error updating user profile: $e');
       rethrow;

@@ -84,7 +84,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
           });
         }
       } catch (e) {
-        print('Error pre-llenando datos del usuario: $e');
+        // Error silenciado
       }
     }
   }
@@ -113,7 +113,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
         });
       }
     } catch (e) {
-      print('Error cargando datos del agente: $e');
+      // Error silenciado
       setState(() {
         _currentAgent = Agent.defaultAgent();
         _isLoading = false;
@@ -535,7 +535,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
               userPhone = userProfile.phone.isNotEmpty ? userProfile.phone : userPhone;
             }
           } catch (e) {
-            print('Error obteniendo perfil de usuario: $e');
+            // Error silenciado
           }
         }
 

@@ -37,16 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      print('🔐 Iniciando sesión para: ${_emailController.text.trim()}');
-      
       UserProfile? user = await _authService.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (user != null) {
-        print('✅ Login exitoso para usuario: ${user.name}');
-        
         // Mostrar mensaje de éxito
         _showSnackBar('¡Bienvenido ${user.name}!', Colors.green);
         
@@ -57,13 +53,11 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushReplacementNamed('/home');
         }
       } else {
-        print('❌ Login falló - usuario nulo');
         setState(() {
           _errorMessage = 'Error inesperado durante el login. Por favor intenta nuevamente.';
         });
       }
     } catch (e) {
-      print('❌ Error durante login: $e');
       setState(() {
         _errorMessage = e.toString();
       });

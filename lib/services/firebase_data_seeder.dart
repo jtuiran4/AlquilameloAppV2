@@ -10,19 +10,15 @@ class FirebaseDataSeeder {
       QuerySnapshot existing = await _firestore.collection('properties').limit(1).get();
       
       if (existing.docs.isNotEmpty) {
-        print('🏠 Las propiedades ya existen en Firebase');
-        return;
+        return; // Datos ya existen
       }
-
-      print('📝 Creando propiedades de ejemplo en Firebase...');
       
       // Crear propiedades de ejemplo
       await _createProperties();
       await _createAgents();
       
-      print('✅ Datos de ejemplo creados exitosamente en Firebase');
     } catch (e) {
-      print('❌ Error al crear datos de ejemplo: $e');
+      // Error al inicializar datos
     }
   }
 
@@ -170,7 +166,7 @@ class FirebaseDataSeeder {
     // Crear cada propiedad en Firebase
     for (int i = 0; i < properties.length; i++) {
       await _firestore.collection('properties').add(properties[i]);
-      print('✅ Propiedad ${i + 1} creada: ${properties[i]['title']}');
+      // Propiedad creada silenciosamente
     }
   }
 
@@ -208,6 +204,6 @@ class FirebaseDataSeeder {
     await _firestore.collection('agents').doc('agent1').set(agents[0]);
     await _firestore.collection('agents').doc('agent2').set(agents[1]);
     
-    print('✅ Agentes creados exitosamente');
+    // Agentes creados silenciosamente
   }
 }
