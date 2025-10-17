@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_models.dart';
+import 'shared_preferences_service.dart';
 
 class AgentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -34,6 +35,9 @@ class AgentService {
           .collection('agents')
           .doc(currentUser.uid)
           .set(agent.toFirestore());
+
+      // Marcar sincronización después de crear perfil
+      await SharedPreferencesService.setLastSyncTime(DateTime.now());
 
       print('✅ Perfil de agente creado: ${agent.name}');
     } catch (e) {

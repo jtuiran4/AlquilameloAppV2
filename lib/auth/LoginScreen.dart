@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/shared_preferences_service.dart';
 import '../models/app_models.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,7 +18,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  // Cargar credenciales guardadas
+  void _loadSavedCredentials() {
+    if (SharedPreferencesService.getRememberLogin()) {
+      final savedEmail = SharedPreferencesService.getUserEmail();
+      if (savedEmail != null) {
+        _emailController.text = savedEmail;
+        setState(() {
+          _rememberMe = true;
+        });
+      }
+    }
+  }
+
+  // Guardar credenciales si el usuario quiere recordarlas
+  Future<void> _saveCredentials(String userName) async {
+    await SharedPreferencesService.setRememberLogin(_rememberMe);
+    if (_rememberMe) {
+      await SharedPreferencesService.setUserEmail(_emailController.text.trim());
+      await SharedPreferencesService.setUserName(userName);
+    } else {
+      // Si no quiere recordar, limpiar datos guardados
+      await SharedPreferencesService.clearUserData();
+    }
+  }
 
   @override
   void dispose() {
@@ -43,6 +76,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null) {
+        // Guardar credenciales si el usuario quiere recordarlas
+        await _saveCredentials(user.name);
+        
         // Mostrar mensaje de éxito
         _showSnackBar('¡Bienvenido ${user.name}!', Colors.green);
         
@@ -322,6 +358,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // Checkbox para recordar credenciales
+                CheckboxListTile(
+                  title: const Text(
+                    'Recordar mis datos',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  value: _rememberMe,
+                  onChanged: _isLoading ? null : (value) {
+                    setState(() {
+                      _rememberMe = value ?? false;
+                    });
+                  },
+                  activeColor: const Color(0xFFF88245),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 5),
 
                 // Enlace "¿Olvidaste tu contraseña?"
                 Align(

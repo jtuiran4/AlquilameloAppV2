@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/agent_service.dart';
+import '../services/shared_preferences_service.dart';
 import '../models/app_models.dart';
 import '../auth/LoginScreen.dart';
 import 'AddPropertyScreen.dart';
@@ -694,6 +695,8 @@ class _AgentDashboardState extends State<AgentDashboard> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              // Limpiar datos de usuario al cerrar sesión
+              await SharedPreferencesService.clearUserData();
               await _auth.signOut();
               if (mounted) {
                 Navigator.of(context).pushNamedAndRemoveUntil(

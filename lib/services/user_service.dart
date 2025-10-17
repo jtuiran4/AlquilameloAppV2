@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_models.dart';
+import 'shared_preferences_service.dart';
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -68,6 +69,9 @@ class UserService {
           .collection('users')
           .doc(currentUser.uid)
           .set(profile.toFirestore(), SetOptions(merge: true));
+      
+      // Marcar última sincronización
+      await SharedPreferencesService.setLastSyncTime(DateTime.now());
       
       // Perfil actualizado
     } catch (e) {
