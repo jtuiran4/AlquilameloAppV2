@@ -126,37 +126,120 @@ class UserService {
   Future<List<Property>> getContactedProperties() async {
     try {
       User? currentUser = _auth.currentUser;
-      if (currentUser == null) return [];
+      if (currentUser == null) {
+        return [];
+      }
 
-      // Obtener contactos del usuario
-      final contactsSnapshot = await _firestore
-          .collection('contacts')
-          .where('userId', isEqualTo: currentUser.uid)
-          .orderBy('createdAt', descending: true)
-          .get();
+      // Primero intentar obtener contactos SIN orderBy para evitar problemas de índices
+      QuerySnapshot contactsSnapshot;
+      try {
+        contactsSnapshot = await _firestore
+            .collection('contacts')
+            .where('userId', isEqualTo: currentUser.uid)
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (orderByError) {
+        // Si falla el orderBy (puede ser por falta de índice), intentar sin él
+        contactsSnapshot = await _firestore
+            .collection('contacts')
+            .where('userId', isEqualTo: currentUser.uid)
+            .get();
+      }
 
       List<Property> contactedProperties = [];
+      Set<String> processedPropertyIds = {}; // Para evitar duplicados
       
       for (var contact in contactsSnapshot.docs) {
-        final propertyId = contact.data()['propertyId'] as String;
-        final propertyDoc = await _firestore
-            .collection('properties')
-            .doc(propertyId)
-            .get();
-            
-        if (propertyDoc.exists) {
-          final property = Property.fromFirestore(
-            propertyDoc.data() as Map<String, dynamic>, 
-            propertyDoc.id
-          );
-          contactedProperties.add(property);
+        final contactData = contact.data() as Map<String, dynamic>;
+        final propertyId = contactData['propertyId'] as String?;
+        
+        if (propertyId == null || propertyId.isEmpty) {
+          continue;
+        }
+        
+        // Evitar propiedades duplicadas
+        if (processedPropertyIds.contains(propertyId)) {
+          continue;
+        }
+        processedPropertyIds.add(propertyId);
+        
+        try {
+          final propertyDoc = await _firestore
+              .collection('properties')
+              .doc(propertyId)
+              .get();
+              
+          if (propertyDoc.exists) {
+            final propertyData = propertyDoc.data() as Map<String, dynamic>;
+            final property = Property.fromFirestore(propertyData, propertyDoc.id);
+            contactedProperties.add(property);
+          }
+        } catch (propertyError) {
+          // Error silenciado para evitar interrumpir el flujo
         }
       }
 
+      // Ordenar por título si no pudimos ordenar por fecha
+      if (contactedProperties.isNotEmpty) {
+        contactedProperties.sort((a, b) => a.title.compareTo(b.title));
+      }
+      
       return contactedProperties;
     } catch (e) {
-      print('❌ Error obteniendo propiedades contactadas: $e');
       return [];
+    }
+  }
+
+  // Método simple para verificar si existen contactos
+  Future<int> getContactsCount() async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) return 0;
+
+      final contactsSnapshot = await _firestore
+          .collection('contacts')
+          .where('userId', isEqualTo: currentUser.uid)
+          .get();
+
+      return contactsSnapshot.docs.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Cambiar contraseña
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw 'Usuario no autenticado';
+      }
+
+      // Re-autenticar al usuario con su contraseña actual
+      final credential = EmailAuthProvider.credential(
+        email: currentUser.email!,
+        password: currentPassword,
+      );
+
+      await currentUser.reauthenticateWithCredential(credential);
+      
+      // Cambiar la contraseña
+      await currentUser.updatePassword(newPassword);
+      
+      print('✅ Contraseña cambiada correctamente');
+    } catch (e) {
+      print('❌ Error cambiando contraseña: $e');
+      if (e.toString().contains('wrong-password')) {
+        throw 'La contraseña actual es incorrecta';
+      } else if (e.toString().contains('weak-password')) {
+        throw 'La nueva contraseña es muy débil';
+      } else if (e.toString().contains('requires-recent-login')) {
+        throw 'Por seguridad, necesitas volver a iniciar sesión antes de cambiar la contraseña';
+      }
+      rethrow;
     }
   }
 

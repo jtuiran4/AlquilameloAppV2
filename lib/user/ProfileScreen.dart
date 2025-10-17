@@ -150,7 +150,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
         ),
         title: const Text(
           'Mi Perfil',
@@ -271,19 +271,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 16),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildStatItem(
                               icon: Icons.favorite,
                               value: stats.favoriteCount.toString(),
                               label: 'Favoritos',
                               color: Colors.red,
-                            ),
-                            _buildStatItem(
-                              icon: Icons.visibility,
-                              value: stats.viewedCount.toString(),
-                              label: 'Vistas',
-                              color: Colors.blue,
                             ),
                             _buildStatItem(
                               icon: Icons.contact_phone,
@@ -309,6 +303,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           title: 'Información Personal',
                           subtitle: 'Editar nombre y teléfono',
                           onTap: () => _editPersonalInfo(userProfile),
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.lock,
+                          title: 'Cambiar Contraseña',
+                          subtitle: 'Actualizar tu contraseña',
+                          onTap: () => _showChangePasswordDialog(),
                         ),
                       ]),
                       const SizedBox(height: 20),
@@ -512,23 +512,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showContactedProperties() async {
-    final contactedProperties = await _userService.getContactedProperties();
-    
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Propiedades Contactadas'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: contactedProperties.isEmpty
-                ? const Center(child: Text('No has contactado ninguna propiedad aún'))
-                : ListView.builder(
-                    itemCount: contactedProperties.length,
-                    itemBuilder: (context, index) {
-                      final property = contactedProperties[index];
-                      return ListTile(
+    // Mostrar diálogo con loading primero
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        title: Text('Propiedades Contactadas'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 100,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Cargando propiedades...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Primero verificar cuántos contactos hay en total
+      final contactsCount = await _userService.getContactsCount();
+      final contactedProperties = await _userService.getContactedProperties();
+      
+      if (mounted) {
+        // Cerrar el diálogo de loading
+        Navigator.pop(context);
+        
+        // Mostrar el diálogo con las propiedades
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Propiedades Contactadas ($contactsCount contactos)'),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 300,
+              child: contactedProperties.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Text(
+                            contactsCount > 0 
+                                ? 'Tienes $contactsCount contactos pero no se pudieron cargar las propiedades.\nRevisa la consola para más detalles.'
+                                : 'No has contactado ninguna propiedad aún',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: contactedProperties.length,
+                      itemBuilder: (context, index) {
+                        final property = contactedProperties[index];
+                        return ListTile(
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: property.imageUrl.startsWith('http')
@@ -589,16 +633,211 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        // Cerrar el diálogo de loading si está abierto
+        Navigator.pop(context);
+        
+        // Mostrar error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar propiedades: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showChangePasswordDialog() {
+    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+    bool showCurrentPassword = false;
+    bool showNewPassword = false;
+    bool showConfirmPassword = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Cambiar Contraseña'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Contraseña actual
+                TextFormField(
+                  controller: currentPasswordController,
+                  obscureText: !showCurrentPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña actual',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        showCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          showCurrentPassword = !showCurrentPassword;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Ingresa tu contraseña actual';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Nueva contraseña
+                TextFormField(
+                  controller: newPasswordController,
+                  obscureText: !showNewPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Nueva contraseña',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        showNewPassword ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          showNewPassword = !showNewPassword;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Ingresa la nueva contraseña';
+                    }
+                    if (value.length < 6) {
+                      return 'La contraseña debe tener al menos 6 caracteres';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Confirmar nueva contraseña
+                TextFormField(
+                  controller: confirmPasswordController,
+                  obscureText: !showConfirmPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmar nueva contraseña',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        showConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          showConfirmPassword = !showConfirmPassword;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Confirma la nueva contraseña';
+                    }
+                    if (value != newPasswordController.text) {
+                      return 'Las contraseñas no coinciden';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar'),
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: isLoading ? null : () async {
+                if (formKey.currentState!.validate()) {
+                  setState(() {
+                    isLoading = true;
+                  });
+
+                  try {
+                    await _userService.changePassword(
+                      currentPassword: currentPasswordController.text,
+                      newPassword: newPasswordController.text,
+                    );
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Contraseña cambiada exitosamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    setState(() {
+                      isLoading = false;
+                    });
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('❌ Error: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF88245),
+                foregroundColor: Colors.white,
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('Cambiar'),
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
   }
 
   void _showLogoutDialog() {

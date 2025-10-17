@@ -607,6 +607,18 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
 
         await _firestore.collection('contacts').add(inquiry.toFirestore());
 
+        // Incrementar contador de propiedades contactadas en el perfil del usuario
+        try {
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (currentUser != null) {
+            await _firestore.collection('users').doc(currentUser.uid).update({
+              'statistics.contactedAgents': FieldValue.increment(1),
+            });
+          }
+        } catch (e) {
+          // No bloquear la experiencia de usuario si falla la actualización de estadísticas
+        }
+
         if (mounted) {
           setState(() {
             _isSubmitting = false;

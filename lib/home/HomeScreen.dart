@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_models.dart';
 import '../services/property_service.dart';
+import '../widgets/property_image_carousel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -278,33 +279,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Imagen de la propiedad
+          // Imagen de la propiedad con carrusel
           Stack(
             children: [
-              ClipRRect(
+              PropertyImageCarousel(
+                property: property,
+                height: 200,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                child: Image.network(
-                  property.imageUrl,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 200,
-                      color: Colors.grey.shade200,
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                ),
               ),
+              // Etiqueta de acción (Venta/Arriendo)
               Positioned(
                 top: 10,
                 right: 10,
@@ -324,6 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              // Botón de favoritos
               Positioned(
                 top: 10,
                 left: 10,
@@ -512,29 +496,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
+                      PropertyImageCarousel(
+                        property: property,
+                        height: 250,
                         borderRadius: BorderRadius.circular(15),
-                        child: Image.network(
-                          property.imageUrl,
-                          height: 250,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 250,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              height: 250,
-                              color: Colors.grey.shade200,
-                              child: const Center(child: CircularProgressIndicator()),
-                            );
-                          },
-                        ),
                       ),
                       const SizedBox(height: 20),
                       Text(

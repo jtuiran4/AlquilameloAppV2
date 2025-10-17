@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_models.dart';
 import '../services/property_service.dart';
 import '../auth/LoginScreen.dart';
+import '../home/PropertyDetailScreen.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -25,6 +26,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
+        ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -542,11 +547,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     // Incrementar contador de vistas
     _propertyService.incrementViewCount(property.id);
     
-    // Navegar a detalles (implementar según tu navegación)
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Viendo detalles de ${property.title}'),
-        duration: const Duration(seconds: 2),
+    // Navegar a pantalla de detalles
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PropertyDetailScreen(property: property),
       ),
     );
   }

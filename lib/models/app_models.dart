@@ -37,6 +37,28 @@ class Property {
     }
   }
 
+  // Getter para obtener todas las imágenes disponibles
+  List<String> get allImages {
+    List<String> images = [];
+    
+    // Agregar imagen principal si existe
+    if (imageUrl.isNotEmpty) {
+      images.add(imageUrl);
+    }
+    
+    // Agregar imágenes adicionales
+    images.addAll(imageUrls);
+    
+    // Remover duplicados y URLs vacías
+    return images.where((url) => url.isNotEmpty).toSet().toList();
+  }
+
+  // Getter para obtener la primera imagen disponible
+  String get firstAvailableImage {
+    final images = allImages;
+    return images.isNotEmpty ? images.first : '';
+  }
+
   Property({
     required this.id,
     required this.title,
