@@ -118,14 +118,8 @@ class Agent {
   final String email;
   final String phone;
   final String whatsapp;
-  final String photoUrl;
-  final double rating;
   final int propertiesSold;
-  final int yearsExperience;
-  final bool isActive;
   final DateTime? createdAt;
-  final List<String> specialties;
-  final String description;
 
   Agent({
     required this.id,
@@ -134,14 +128,8 @@ class Agent {
     required this.email,
     required this.phone,
     required this.whatsapp,
-    required this.photoUrl,
-    required this.rating,
     required this.propertiesSold,
-    required this.yearsExperience,
-    this.isActive = true,
     this.createdAt,
-    this.specialties = const [],
-    this.description = '',
   });
 
   // Convertir desde Firestore
@@ -153,14 +141,8 @@ class Agent {
       email: data['email'] ?? '',
       phone: data['phone'] ?? '',
       whatsapp: data['whatsapp'] ?? '',
-      photoUrl: data['photoUrl'] ?? '',
-      rating: (data['rating'] ?? 0).toDouble(),
       propertiesSold: data['propertiesSold'] ?? 0,
-      yearsExperience: data['yearsExperience'] ?? 0,
-      isActive: data['isActive'] ?? true,
       createdAt: data['createdAt']?.toDate(),
-      specialties: List<String>.from(data['specialties'] ?? []),
-      description: data['description'] ?? '',
     );
   }
 
@@ -172,32 +154,9 @@ class Agent {
       'email': email,
       'phone': phone,
       'whatsapp': whatsapp,
-      'photoUrl': photoUrl,
-      'rating': rating,
       'propertiesSold': propertiesSold,
-      'yearsExperience': yearsExperience,
-      'isActive': isActive,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
-      'specialties': specialties,
-      'description': description,
     };
-  }
-
-  static Agent defaultAgent() {
-    return Agent(
-      id: '1',
-      name: 'María González',
-      position: 'Agente Inmobiliario Senior',
-      email: 'maria.gonzalez@alquilamelo.com',
-      phone: '+57 300 123 4567',
-      whatsapp: '+57 300 123 4567',
-      photoUrl: '', // Se puede agregar una imagen del agente
-      rating: 4.8,
-      propertiesSold: 127,
-      yearsExperience: 8,
-      specialties: ['Apartamentos', 'Casas', 'Oficinas'],
-      description: 'Agente especializada en propiedades residenciales y comerciales con más de 8 años de experiencia.',
-    );
   }
 }
 
@@ -323,7 +282,6 @@ class AgentStats {
   final int pendingInquiries;
   final int completedInquiries;
   final double averageRating;
-  final int totalViews;
 
   AgentStats({
     this.totalProperties = 0,
@@ -332,6 +290,5 @@ class AgentStats {
     this.pendingInquiries = 0,
     this.completedInquiries = 0,
     this.averageRating = 0.0,
-    this.totalViews = 0,
   });
 }

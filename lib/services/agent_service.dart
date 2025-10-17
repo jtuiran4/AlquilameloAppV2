@@ -25,13 +25,7 @@ class AgentService {
         email: currentUser.email ?? '',
         phone: phone,
         position: position,
-        photoUrl: photoUrl ?? '',
-        rating: 5.0,
         propertiesSold: 0,
-        yearsExperience: 0,
-        isActive: true,
-        specialties: [],
-        description: '',
         createdAt: DateTime.now(),
         whatsapp: phone,
       );
@@ -165,7 +159,6 @@ class AgentService {
           totalProperties: 0,
           activeProperties: 0,
           totalInquiries: 0,
-          totalViews: 0,
         );
       }
 
@@ -180,12 +173,6 @@ class AgentService {
           .where((doc) => doc.data()['isActive'] == true)
           .length;
 
-      // Calcular total de vistas
-      int totalViews = 0;
-      for (var doc in propertiesSnapshot.docs) {
-        totalViews += (doc.data()['viewsCount'] as int? ?? 0);
-      }
-
       // Obtener consultas del agente
       final inquiriesSnapshot = await _firestore
           .collection('contacts')
@@ -198,7 +185,6 @@ class AgentService {
         totalProperties: totalProperties,
         activeProperties: activeProperties,
         totalInquiries: totalInquiries,
-        totalViews: totalViews,
       );
     } catch (e) {
       print('❌ Error obteniendo estadísticas del agente: $e');
@@ -206,7 +192,6 @@ class AgentService {
         totalProperties: 0,
         activeProperties: 0,
         totalInquiries: 0,
-        totalViews: 0,
       );
     }
   }

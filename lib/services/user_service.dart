@@ -156,13 +156,6 @@ class UserService {
     }
   }
 
-  // Inicializar usuario demo (ya no se usa, solo para compatibilidad)
-  @deprecated
-  Future<void> initializeDemoUser() async {
-    // Este método ya no hace nada, se mantiene para compatibilidad
-    print('⚠️  initializeDemoUser está deprecated, ahora se usa Firebase Auth');
-  }
-
   // Cerrar sesión
   Future<void> signOut() async {
     try {

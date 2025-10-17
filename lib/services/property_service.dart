@@ -1,10 +1,70 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/app_models.dart';
+import 'imagekit_web_service.dart';
 
 class PropertyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ImageKitWebService _imageService = ImageKitWebService();
+
+  // Subir imágenes usando ImageKit (Web compatible)
+  Future<List<String>> uploadPropertyImages(List<XFile> images) async {
+    try {
+      final List<String> imageUrls = await _imageService.uploadMultipleImages(images);
+      return imageUrls;
+    } catch (e) {
+      throw Exception('Error al subir imágenes a ImageKit: $e');
+    }
+  }
+
+  // Agregar propiedad con imágenes
+  Future<void> addPropertyWithImages({
+    required String title,
+    required String description,
+    required double price,
+    required String action,
+    required String type,
+    required int bedrooms,
+    required int bathrooms,
+    required double area,
+    required String location,
+    required String agentId,
+    required List<XFile> images,
+    Map<String, dynamic> features = const {},
+  }) async {
+    try {
+      // Subir imágenes primero
+      final List<String> imageUrls = await uploadPropertyImages(images);
+      
+      // Crear la propiedad con las URLs de las imágenes
+      final property = Property(
+        id: '', // Se asignará automáticamente
+        title: title,
+        description: description,
+        price: price,
+        action: action,
+        type: type,
+        bedrooms: bedrooms,
+        bathrooms: bathrooms,
+        area: area,
+        location: location,
+        imageUrl: imageUrls.isNotEmpty ? imageUrls.first : '',
+        imageUrls: imageUrls,
+        agentId: agentId,
+        isActive: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        features: features,
+      );
+
+      // Guardar en Firestore
+      await _firestore.collection('properties').add(property.toFirestore());
+    } catch (e) {
+      throw Exception('Error al crear propiedad: $e');
+    }
+  }
 
   // Obtener todas las propiedades (método simple sin índices)
   Stream<List<Property>> getAllPropertiesSimple() {

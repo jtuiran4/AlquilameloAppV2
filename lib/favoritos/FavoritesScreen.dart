@@ -333,7 +333,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   topLeft: Radius.circular(15),
                   topRight: Radius.circular(15),
                 ),
-                child: Image.asset(
+                child: Image.network(
                   property.imageUrl,
                   height: 200,
                   width: double.infinity,
@@ -347,6 +347,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         size: 50,
                         color: Colors.grey,
                       ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 200,
+                      color: Colors.grey.shade300,
+                      child: const Center(child: CircularProgressIndicator()),
                     );
                   },
                 ),

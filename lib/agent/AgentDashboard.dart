@@ -47,7 +47,30 @@ class _AgentDashboardState extends State<AgentDashboard> {
             }
 
             if (isAgentSnapshot.data != true) {
-              return _buildBecomeAgentScreen();
+              // Si el usuario está autenticado pero no es agente (ej: cuenta eliminada),
+              // cerrar sesión automáticamente
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                await _auth.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false,
+                  );
+                }
+              });
+              
+              // Mostrar loading mientras se redirige
+              return Scaffold(
+                backgroundColor: Colors.grey.shade50,
+                appBar: AppBar(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  title: const Text('Panel de Agente'),
+                ),
+                body: const Center(
+                  child: CircularProgressIndicator(color: primary),
+                ),
+              );
             }
 
             return _buildAgentDashboard();
@@ -125,159 +148,6 @@ class _AgentDashboardState extends State<AgentDashboard> {
     );
   }
 
-  Widget _buildBecomeAgentScreen() {
-    const primary = Color(0xFFF88245);
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-    final positionController = TextEditingController();
-
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        title: const Text('Convertirse en Agente'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.business_center,
-                          color: primary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '¡Conviértete en Agente!',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            Text(
-                              'Completa tu perfil para comenzar',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nombre completo',
-                      hintText: 'Tu nombre profesional',
-                      prefixIcon: Icon(Icons.person, color: primary),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: primary, width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: 'Teléfono/WhatsApp',
-                      hintText: 'Número de contacto',
-                      prefixIcon: Icon(Icons.phone, color: primary),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: primary, width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: positionController,
-                    decoration: InputDecoration(
-                      labelText: 'Cargo/Posición',
-                      hintText: 'Ej: Agente Inmobiliario Senior',
-                      prefixIcon: Icon(Icons.work, color: primary),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: primary, width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _createAgentProfile(
-                        nameController.text,
-                        phoneController.text,
-                        positionController.text,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Crear Perfil de Agente',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildAgentDashboard() {
     const primary = Color(0xFFF88245);
 
@@ -287,31 +157,11 @@ class _AgentDashboardState extends State<AgentDashboard> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/alquilamelologo.png',
-              height: 28,
-              width: 28,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.business_center, size: 28, color: Colors.white);
-              },
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Panel de Agente',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'Panel de Agente',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(),
-          ),
-        ],
       ),
       body: StreamBuilder<Agent?>(
         stream: _agentService.getCurrentAgentProfile(),
@@ -336,7 +186,6 @@ class _AgentDashboardState extends State<AgentDashboard> {
                 totalProperties: 0,
                 activeProperties: 0,
                 totalInquiries: 0,
-                totalViews: 0,
               );
 
               return SingleChildScrollView(
@@ -364,21 +213,16 @@ class _AgentDashboardState extends State<AgentDashboard> {
                             CircleAvatar(
                               radius: 40,
                               backgroundColor: primary.withValues(alpha: 0.1),
-                              backgroundImage: agent.photoUrl.isNotEmpty
-                                  ? NetworkImage(agent.photoUrl)
-                                  : null,
-                              child: agent.photoUrl.isEmpty
-                                  ? Text(
-                                      agent.name.isNotEmpty 
-                                          ? agent.name[0].toUpperCase() 
-                                          : 'A',
-                                      style: const TextStyle(
+                              child: Text(
+                                agent.name.isNotEmpty 
+                                    ? agent.name[0].toUpperCase() 
+                                    : 'A',
+                                style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
                                         color: primary,
                                       ),
-                                    )
-                                  : null,
+                                    ),
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -405,12 +249,6 @@ class _AgentDashboardState extends State<AgentDashboard> {
                                   value: stats.totalProperties.toString(),
                                   label: 'Propiedades',
                                   color: Colors.blue,
-                                ),
-                                _buildStatItem(
-                                  icon: Icons.visibility,
-                                  value: stats.totalViews.toString(),
-                                  label: 'Vistas',
-                                  color: Colors.green,
                                 ),
                                 _buildStatItem(
                                   icon: Icons.message,
@@ -487,6 +325,63 @@ class _AgentDashboardState extends State<AgentDashboard> {
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Gestión de cuenta
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.manage_accounts,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              title: const Text(
+                                'Gestionar Cuenta',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: const Text('Cambiar contraseña o eliminar cuenta'),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () => _showAccountManagementDialog(),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.logout,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              title: const Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: const Text('Salir de tu cuenta de agente'),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () => _showLogoutDialog(),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 30),
@@ -583,43 +478,206 @@ class _AgentDashboardState extends State<AgentDashboard> {
     );
   }
 
-  Future<void> _createAgentProfile(String name, String phone, String position) async {
-    if (name.trim().isEmpty || phone.trim().isEmpty || position.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos'),
-          backgroundColor: Colors.red,
+  void _showAccountManagementDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Gestionar Cuenta'),
+        content: const Text('¿Qué acción deseas realizar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showChangePasswordDialog();
+            },
+            child: const Text('Cambiar Contraseña'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showDeleteAccountDialog();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar Cuenta'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambiar Contraseña'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Contraseña actual',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: newPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Nueva contraseña',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirmar nueva contraseña',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
-      );
-      return;
-    }
-
-    try {
-      await _agentService.createAgentProfile(
-        name: name.trim(),
-        phone: phone.trim(),
-        position: position.trim(),
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Perfil de agente creado exitosamente!'),
-            backgroundColor: Colors.green,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
           ),
-        );
-        setState(() {}); // Rebuild para mostrar el dashboard
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Las contraseñas no coinciden'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              if (newPasswordController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('La contraseña debe tener al menos 6 caracteres'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                Navigator.pop(context);
+                // Reautenticar y cambiar contraseña
+                final user = _auth.currentUser;
+                final credential = EmailAuthProvider.credential(
+                  email: user!.email!,
+                  password: currentPasswordController.text,
+                );
+                await user.reauthenticateWithCredential(credential);
+                await user.updatePassword(newPasswordController.text);
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Contraseña cambiada exitosamente'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Cambiar'),
           ),
-        );
-      }
-    }
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    final passwordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Cuenta'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '⚠️ Esta acción eliminará permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.',
+              style: TextStyle(color: Colors.red),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirma tu contraseña',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                Navigator.pop(context);
+                final user = _auth.currentUser;
+                final credential = EmailAuthProvider.credential(
+                  email: user!.email!,
+                  password: passwordController.text,
+                );
+                await user.reauthenticateWithCredential(credential);
+                await user.delete();
+                
+                if (mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar Cuenta', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showLogoutDialog() {
@@ -637,6 +695,12 @@ class _AgentDashboardState extends State<AgentDashboard> {
             onPressed: () async {
               Navigator.pop(context);
               await _auth.signOut();
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

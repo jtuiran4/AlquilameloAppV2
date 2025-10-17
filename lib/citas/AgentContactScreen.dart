@@ -56,9 +56,9 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
             'Me gustaría recibir más información y agendar una cita para visitarla.';
       }
     } else {
-      // Si no hay propiedad, usar agente por defecto
-      _currentAgent = Agent.defaultAgent();
+      // Si no hay propiedad, mostrar mensaje de error
       setState(() {
+        _currentAgent = null;
         _isLoading = false;
       });
     }
@@ -106,16 +106,16 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
           _isLoading = false;
         });
       } else {
-        // Si no se encuentra el agente, usar uno por defecto
+        // Si no se encuentra el agente, mostrar error
         setState(() {
-          _currentAgent = Agent.defaultAgent();
+          _currentAgent = null;
           _isLoading = false;
         });
       }
     } catch (e) {
-      // Error silenciado
+      // Error al cargar agente
       setState(() {
-        _currentAgent = Agent.defaultAgent();
+        _currentAgent = null;
         _isLoading = false;
       });
     }
@@ -131,31 +131,56 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/alquilamelologo.png',
-              height: 28,
-              width: 28,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.home, size: 28, color: Colors.white);
-              },
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Contactar Agente',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        title: const Text(
+          'Contactar Agente',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: primary),
             )
-          : SingleChildScrollView(
+          : _currentAgent == null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 80,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Agente no disponible',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'No se pudo cargar la información del agente para esta propiedad.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Volver'),
+                      ),
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,18 +206,13 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: primary.withValues(alpha: 0.1),
-                    backgroundImage: _currentAgent?.photoUrl.isNotEmpty == true 
-                        ? AssetImage(_currentAgent!.photoUrl) 
-                        : null,
-                    child: _currentAgent?.photoUrl.isEmpty != false 
-                        ? Icon(Icons.person, size: 50, color: primary)
-                        : null,
+                    child: Icon(Icons.person, size: 50, color: primary),
                   ),
                   const SizedBox(height: 15),
                   
                   // Nombre del agente
                   Text(
-                    _currentAgent?.name ?? 'Agente',
+                    _currentAgent!.name,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -202,7 +222,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   
                   // Cargo
                   Text(
-                    _currentAgent?.position ?? 'Agente Inmobiliario',
+                    _currentAgent!.position,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey.shade600,
@@ -214,9 +234,9 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildAgentStat(Icons.star, '${_currentAgent?.rating ?? 5.0}', 'Rating'),
-                      _buildAgentStat(Icons.home_work, '${_currentAgent?.propertiesSold ?? 0}', 'Vendidas'),
-                      _buildAgentStat(Icons.access_time, '${_currentAgent?.yearsExperience ?? 0}', 'Años Exp.'),
+                      _buildAgentStat(Icons.person, _currentAgent!.name, 'Nombre'),
+                      _buildAgentStat(Icons.home_work, '${_currentAgent!.propertiesSold}', 'Vendidas'),
+                      _buildAgentStat(Icons.work, _currentAgent!.position, 'Cargo'),
                     ],
                   ),
                   const SizedBox(height: 15),
@@ -257,20 +277,50 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            _property!.imageUrl,
-                            width: 80,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 80,
-                                height: 60,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image_not_supported),
-                              );
-                            },
-                          ),
+                          child: _property!.imageUrl.startsWith('http')
+                              ? Image.network(
+                                  _property!.imageUrl,
+                                  width: 80,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 80,
+                                      height: 60,
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(Icons.image_not_supported),
+                                    );
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      width: 80,
+                                      height: 60,
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Image.asset(
+                                  _property!.imageUrl,
+                                  width: 80,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 80,
+                                      height: 60,
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(Icons.image_not_supported),
+                                    );
+                                  },
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -549,7 +599,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
           userName: userName,
           userEmail: userEmail,
           userPhone: userPhone,
-          agentId: _currentAgent?.id ?? '',
+          agentId: _currentAgent!.id,
           message: _messageController.text.trim(),
           status: 'pending',
           createdAt: DateTime.now(),
@@ -577,7 +627,7 @@ class _AgentContactScreenState extends State<AgentContactScreen> {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    'Tu solicitud ha sido enviada a ${_currentAgent?.name ?? 'nuestro agente'}.',
+                    'Tu solicitud ha sido enviada a ${_currentAgent!.name}.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 10),

@@ -148,35 +148,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/alquilamelologo.png',
-              height: 28,
-              width: 28,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.home, size: 28, color: Colors.white);
-              },
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Mi Perfil',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _editPersonalInfo(userProfile),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(),
-          ),
-        ],
+        title: const Text(
+          'Mi Perfil',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: FutureBuilder<UserStats>(
         future: _userService.getUserStats(),
@@ -187,9 +166,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 // Header del perfil
-                Container(
-                  color: primary,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+                Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       // Avatar y info básica
@@ -201,8 +179,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
@@ -529,7 +508,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _goToFavorites() {
-    DefaultTabController.of(context).animateTo(1); // Ir a tab de favoritos
+    Navigator.of(context).pushNamed('/favorites');
   }
 
   void _showContactedProperties() async {
@@ -552,13 +531,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       return ListTile(
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            property.imageUrl,
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
+                          child: property.imageUrl.startsWith('http')
+                              ? Image.network(
+                                  property.imageUrl,
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(Icons.image_not_supported),
+                                    );
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 15,
+                                          height: 15,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Image.asset(
+                                  property.imageUrl,
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
                                 width: 50,
                                 height: 50,
                                 color: Colors.grey.shade300,
@@ -608,11 +617,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.pop(context);
               await _userService.signOut();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Sesión cerrada correctamente'),
-                    backgroundColor: Colors.green,
-                  ),
+                // Navegar directamente al LoginScreen
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (route) => false,
                 );
               }
             },

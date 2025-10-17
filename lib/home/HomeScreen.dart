@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_models.dart';
 import '../services/property_service.dart';
-import '../services/firebase_data_seeder.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,21 +15,11 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedPriceRange = 'Todos';
   String _selectedAction = 'Todos';
   final PropertyService _propertyService = PropertyService();
-  final FirebaseDataSeeder _dataSeeder = FirebaseDataSeeder();
 
   @override
   void initState() {
     super.initState();
-    // Inicializar datos de Firebase si es necesario
-    _initializeFirebaseData();
-  }
-
-  Future<void> _initializeFirebaseData() async {
-    try {
-      await _dataSeeder.seedInitialData();
-    } catch (e) {
-      // Error de inicialización silenciado
-    }
+    // Ya no se inicializan datos automáticamente
   }
 
   List<Property> _filterProperties(List<Property> properties) {
@@ -54,26 +43,25 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(width: 8),
-            const Text(
-              'Alquílamelo',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            // Logo de Alquílamelo con llave blanca
+            ColorFiltered(
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
+              child: Image.asset(
+                'assets/alquilamelologo.png',
+                height: 150,
+                fit: BoxFit.contain,
+              ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -295,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                child: Image.asset(
+                child: Image.network(
                   property.imageUrl,
                   height: 200,
                   width: double.infinity,
@@ -305,6 +293,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 200,
                       color: Colors.grey.shade200,
                       child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 200,
+                      color: Colors.grey.shade200,
+                      child: const Center(child: CircularProgressIndicator()),
                     );
                   },
                 ),
@@ -518,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(15),
-                        child: Image.asset(
+                        child: Image.network(
                           property.imageUrl,
                           height: 250,
                           width: double.infinity,
@@ -528,6 +524,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 250,
                               color: Colors.grey.shade200,
                               child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              height: 250,
+                              color: Colors.grey.shade200,
+                              child: const Center(child: CircularProgressIndicator()),
                             );
                           },
                         ),

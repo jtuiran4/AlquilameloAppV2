@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/agent_service.dart';
-import '../models/app_models.dart';
+import '../services/property_service.dart';
+import '../widgets/image_picker_web_widget.dart';
 
 class AddPropertyScreen extends StatefulWidget {
   const AddPropertyScreen({super.key});
@@ -12,6 +14,7 @@ class AddPropertyScreen extends StatefulWidget {
 class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final _formKey = GlobalKey<FormState>();
   final AgentService _agentService = AgentService();
+  final PropertyService _propertyService = PropertyService();
   
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -20,11 +23,11 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final _bathroomsController = TextEditingController();
   final _areaController = TextEditingController();
   final _locationController = TextEditingController();
-  final _imageUrlController = TextEditingController();
   
   String _selectedAction = 'Arriendo';
   String _selectedType = 'Apartamento';
   bool _isLoading = false;
+  List<XFile> _selectedImages = [];
 
   final List<String> _actions = ['Arriendo', 'Venta'];
   final List<String> _types = ['Apartamento', 'Casa', 'Oficina', 'Local', 'Finca'];
@@ -38,7 +41,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
     _bathroomsController.dispose();
     _areaController.dispose();
     _locationController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -56,19 +58,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           'Agregar Propiedad',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProperty,
-            child: Text(
-              'Guardar',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
       ),
       body: _isLoading
           ? const Center(
@@ -343,28 +332,16 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _imageUrlController,
-                          decoration: InputDecoration(
-                            labelText: 'URL de imagen (opcional)',
-                            hintText: 'https://ejemplo.com/imagen.jpg',
-                            prefixIcon: Icon(Icons.image, color: primary),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: primary, width: 2),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Si no proporcionas una imagen, se usará una imagen por defecto',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
+                        
+                        // Widget para seleccionar imágenes (Web compatible)
+                        ImagePickerWebWidget(
+                          onImagesSelected: (images) {
+                            setState(() {
+                              _selectedImages = images;
+                            });
+                          },
+                          maxImages: 5,
+                          title: 'Imágenes de la propiedad',
                         ),
                       ],
                     ),
@@ -470,8 +447,31 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
     });
 
     try {
-      final property = Property(
-        id: '', // Se asignará automáticamente
+      // Validar que haya al menos una imagen
+      if (_selectedImages.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor selecciona al menos una imagen'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Obtener el agente actual
+      final currentAgent = await _agentService.getCurrentAgentProfile().first;
+      if (currentAgent == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No se encontró el perfil del agente'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Crear propiedad con imágenes
+      await _propertyService.addPropertyWithImages(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         price: double.parse(_priceController.text.trim()),
@@ -481,13 +481,9 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
         bathrooms: int.parse(_bathroomsController.text.trim()),
         area: double.parse(_areaController.text.trim()),
         location: _locationController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty 
-            ? 'assets/hotel.png' 
-            : _imageUrlController.text.trim(),
-        agentId: '', // Se asignará en el servicio
+        agentId: currentAgent.id,
+        images: _selectedImages,
       );
-
-      await _agentService.addProperty(property);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
