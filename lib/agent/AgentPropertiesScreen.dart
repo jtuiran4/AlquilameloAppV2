@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/agent_service.dart';
 import '../models/app_models.dart';
 import 'AddPropertyScreen.dart';
+import 'EditPropertyScreen.dart';
 
 class AgentPropertiesScreen extends StatefulWidget {
   const AgentPropertiesScreen({super.key});
@@ -568,13 +569,16 @@ class _AgentPropertiesScreenState extends State<AgentPropertiesScreen> {
   }
 
   Future<void> _editProperty(Property property) async {
-    // Por ahora mostrar un mensaje, más adelante se puede implementar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Función de edición próximamente'),
-        backgroundColor: Colors.orange,
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditPropertyScreen(property: property),
       ),
     );
+    
+    if (result == true) {
+      _loadProperties(); // Recargar la lista si se actualizó la propiedad
+    }
   }
 
   Future<void> _deleteProperty(Property property) async {

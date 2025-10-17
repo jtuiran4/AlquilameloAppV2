@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/app_models.dart';
 import 'shared_preferences_service.dart';
+import 'imagekit_web_service.dart';
 
 class AgentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ImageKitWebService _imageService = ImageKitWebService();
 
   // Crear perfil de agente
   Future<void> createAgentProfile({
@@ -303,6 +306,42 @@ class AgentService {
       print('✅ Propiedad ${isActive ? 'activada' : 'desactivada'}');
     } catch (e) {
       print('❌ Error actualizando propiedad: $e');
+      rethrow;
+    }
+  }
+
+  // Actualizar propiedad
+  Future<void> updateProperty(String propertyId, Map<String, dynamic> data) async {
+    try {
+      // Agregar timestamp de actualización
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      
+      await _firestore
+          .collection('properties')
+          .doc(propertyId)
+          .update(data);
+
+      print('✅ Propiedad actualizada');
+    } catch (e) {
+      print('❌ Error actualizando propiedad: $e');
+      rethrow;
+    }
+  }
+
+  // Subir múltiples imágenes
+  Future<List<String>> uploadImages(List<XFile> images) async {
+    try {
+      List<String> imageUrls = [];
+      
+      for (XFile image in images) {
+        String imageUrl = await _imageService.uploadImage(image);
+        imageUrls.add(imageUrl);
+      }
+      
+      print('✅ ${imageUrls.length} imágenes subidas exitosamente');
+      return imageUrls;
+    } catch (e) {
+      print('❌ Error subiendo imágenes: $e');
       rethrow;
     }
   }
