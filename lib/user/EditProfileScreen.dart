@@ -325,10 +325,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         email: widget.userProfile.email,
         phone: _phoneController.text.trim(),
         profileImage: widget.userProfile.profileImage,
-        memberSince: widget.userProfile.memberSince,
-        notificationsEnabled: widget.userProfile.notificationsEnabled,
-        darkModeEnabled: widget.userProfile.darkModeEnabled,
-        preferredLanguage: widget.userProfile.preferredLanguage,
         createdAt: widget.userProfile.createdAt,
         updatedAt: DateTime.now(),
       );

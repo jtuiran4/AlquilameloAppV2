@@ -248,9 +248,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            // Miembro desde
+                            // Fecha de registro
                             Text(
-                              'Miembro desde ${userProfile.memberSince}',
+                              'Miembro desde ${userProfile.createdAt?.year ?? DateTime.now().year}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade500,

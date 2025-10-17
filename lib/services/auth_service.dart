@@ -42,10 +42,6 @@ class AuthService {
           email: email,
           phone: phone,
           profileImage: '',
-          memberSince: DateTime.now().year.toString(),
-          notificationsEnabled: true,
-          darkModeEnabled: false,
-          preferredLanguage: 'Español',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
@@ -98,10 +94,6 @@ class AuthService {
             email: user.email ?? email,
             phone: '',
             profileImage: '',
-            memberSince: DateTime.now().year.toString(),
-            notificationsEnabled: true,
-            darkModeEnabled: false,
-            preferredLanguage: 'Español',
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           );

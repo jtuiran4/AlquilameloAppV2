@@ -28,7 +28,6 @@ class UserService {
           email: currentUser.email ?? '',
           name: currentUser.displayName ?? 'Usuario',
           phone: '',
-          memberSince: '2024',
           createdAt: DateTime.now(),
         );
       }
@@ -43,7 +42,6 @@ class UserService {
         name: user.displayName ?? 'Usuario',
         email: user.email ?? '',
         phone: '',
-        memberSince: DateTime.now().year.toString(),
         createdAt: DateTime.now(),
       );
 

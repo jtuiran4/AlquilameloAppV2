@@ -207,10 +207,6 @@ class UserProfile {
   final String email;
   final String phone;
   final String profileImage;
-  final String memberSince;
-  final bool notificationsEnabled;
-  final bool darkModeEnabled;
-  final String preferredLanguage;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -220,10 +216,6 @@ class UserProfile {
     required this.email,
     required this.phone,
     this.profileImage = '',
-    required this.memberSince,
-    this.notificationsEnabled = true,
-    this.darkModeEnabled = false,
-    this.preferredLanguage = 'Español',
     this.createdAt,
     this.updatedAt,
   });
@@ -237,10 +229,6 @@ class UserProfile {
       email: data['email'] ?? '',
       phone: data['phone'] ?? '',
       profileImage: data['profileImage'] ?? '',
-      memberSince: data['memberSince'] ?? '2024',
-      notificationsEnabled: data['notificationsEnabled'] ?? true,
-      darkModeEnabled: data['darkModeEnabled'] ?? false,
-      preferredLanguage: data['preferredLanguage'] ?? 'Español',
       createdAt: data['createdAt']?.toDate(),
       updatedAt: data['updatedAt']?.toDate(),
     );
@@ -253,10 +241,6 @@ class UserProfile {
       'email': email,
       'phone': phone,
       'profileImage': profileImage,
-      'memberSince': memberSince,
-      'notificationsEnabled': notificationsEnabled,
-      'darkModeEnabled': darkModeEnabled,
-      'preferredLanguage': preferredLanguage,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
     };

@@ -333,7 +333,7 @@ class _AgentRegisterScreenState extends State<AgentRegisterScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Enlace para iniciar sesión
+                  
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
