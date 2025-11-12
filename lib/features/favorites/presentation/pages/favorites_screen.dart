@@ -1,23 +1,15 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
-import 'package:alquilamelo_app/features/shared/data/datasources/property_service_legacy.dart';
-import 'package:alquilamelo_app/features/auth/presentation/pages/login_screen.dart';
+import 'package:alquilamelo_app/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:alquilamelo_app/features/home/presentation/pages/property_detail_screen.dart';
 
-class FavoritesScreen extends StatefulWidget {
+class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
   @override
-  State<FavoritesScreen> createState() => _FavoritesScreenState();
-}
-
-class _FavoritesScreenState extends State<FavoritesScreen> {
-  final PropertyService _propertyService = PropertyService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  @override
   Widget build(BuildContext context) {
+    final controller = Get.put(FavoritesController());
     const primary = Color(0xFFF88245);
     
     return Scaffold(
@@ -28,96 +20,87 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
+          onPressed: controller.navigateToHome,
         ),
-        title: Row(
+        title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(width: 8),
-            const Text(
+            SizedBox(width: 8),
+            Text(
               'Mis Favoritos',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
       ),
-      body: StreamBuilder<User?>(
-        stream: _auth.authStateChanges(),
-        builder: (context, authSnapshot) {
-          if (!authSnapshot.hasData) {
-            // Usuario no autenticado - mostrar pantalla de login
-            return _buildLoginPrompt();
-          }
+      body: Obx(() {
+        // Usuario no autenticado
+        if (!controller.isAuthenticated) {
+          return _buildLoginPrompt(controller);
+        }
 
-          // Usuario autenticado - mostrar favoritos
-          return StreamBuilder<List<Property>>(
-            stream: _propertyService.getFavoriteProperties(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(primary),
-                  ),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error al cargar favoritos',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        snapshot.error.toString(),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final favoriteProperties = snapshot.data ?? [];
-
-              if (favoriteProperties.isEmpty) {
-                return _buildEmptyState();
-              }
-
-              return Column(
-                children: [
-                  // Header con estadísticas
-                  _buildStatsHeader(favoriteProperties.length),
-                  // Lista de favoritos
-                  Expanded(
-                    child: _buildFavoritesList(favoriteProperties),
-                  ),
-                ],
-              );
-            },
+        // Cargando
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(primary),
+            ),
           );
-        },
-      ),
+        }
+
+        // Error
+        if (controller.error.value.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error al cargar favoritos',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  controller.error.value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Lista vacía
+        if (controller.favoriteProperties.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        // Lista con favoritos
+        return Column(
+          children: [
+            _buildStatsHeader(controller.favoriteProperties.length),
+            Expanded(
+              child: _buildFavoritesList(controller, controller.favoriteProperties),
+            ),
+          ],
+        );
+      }),
     );
   }
 
-  Widget _buildLoginPrompt() {
+  Widget _buildLoginPrompt(FavoritesController controller) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -150,12 +133,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
+              onPressed: controller.navigateToLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF88245),
                 foregroundColor: Colors.white,
@@ -282,9 +260,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Get.back(),
               icon: const Icon(Icons.explore),
               label: const Text('Explorar Propiedades'),
               style: ElevatedButton.styleFrom(
@@ -302,18 +278,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildFavoritesList(List<Property> favoriteProperties) {
+  Widget _buildFavoritesList(FavoritesController controller, List<Property> favoriteProperties) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: favoriteProperties.length,
       itemBuilder: (context, index) {
         final property = favoriteProperties[index];
-        return _buildPropertyCard(property);
+        return _buildPropertyCard(controller, property);
       },
     );
   }
 
-  Widget _buildPropertyCard(Property property) {
+  Widget _buildPropertyCard(FavoritesController controller, Property property) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -369,7 +345,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 top: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: () => _toggleFavorite(property),
+                  onTap: () => controller.removeFromFavorites(property.id),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
@@ -473,10 +449,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: () {
-                        // Navegar a detalles de la propiedad
-                        _viewPropertyDetails(property);
-                      },
+                      onPressed: () => _viewPropertyDetails(controller, property),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF88245),
                         foregroundColor: Colors.white,
@@ -517,42 +490,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  void _toggleFavorite(Property property) async {
-    try {
-      await _propertyService.removeFromFavorites(property.id);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${property.title} removido de favoritos'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
-  void _viewPropertyDetails(Property property) {
-    // Incrementar contador de vistas
-    _propertyService.incrementViewCount(property.id);
-    
-    // Navegar a pantalla de detalles
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PropertyDetailScreen(property: property),
-      ),
-    );
+  void _viewPropertyDetails(FavoritesController controller, Property property) {
+    controller.incrementViewCount(property.id);
+    Get.to(() => PropertyDetailScreen(property: property));
   }
 }

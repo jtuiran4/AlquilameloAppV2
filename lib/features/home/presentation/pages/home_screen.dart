@@ -1,42 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
-import 'package:alquilamelo_app/features/shared/data/datasources/property_service_legacy.dart';
 import 'package:alquilamelo_app/features/shared/presentation/widgets/property_image_carousel.dart';
+import 'package:alquilamelo_app/features/home/presentation/controllers/home_controller.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  String _selectedPropertyType = 'Todos';
-  String _selectedPriceRange = 'Todos';
-  String _selectedAction = 'Todos';
-  final PropertyService _propertyService = PropertyService();
-
-  @override
-  void initState() {
-    super.initState();
-    // Ya no se inicializan datos automáticamente
-  }
-
-  List<Property> _filterProperties(List<Property> properties) {
-    return properties.where((property) {
-      bool matchesSearch = property.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-                          property.location.toLowerCase().contains(_searchController.text.toLowerCase());
-      bool matchesType = _selectedPropertyType == 'Todos' || property.type == _selectedPropertyType;
-      bool matchesAction = _selectedAction == 'Todos' || property.action == _selectedAction;
-      
-      return matchesSearch && matchesType && matchesAction;
-    }).toList();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = Get.put(HomeController());
     const primary = Color(0xFFF88245);
     
     return Scaffold(
@@ -87,8 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => setState(() {}),
+                    controller: controller.searchController,
                     decoration: InputDecoration(
                       hintText: 'Buscar por ubicación o nombre...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -104,115 +76,107 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 15),
                 
                 // Filtros horizontales
-                SingleChildScrollView(
+                Obx(() => SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip('Acción', _selectedAction, ['Todos', 'Venta', 'Arriendo'], (value) {
-                        setState(() => _selectedAction = value);
-                      }),
+                      _buildFilterChip(
+                        controller, 
+                        'Acción', 
+                        controller.selectedAction.value, 
+                        ['Todos', 'Venta', 'Arriendo'], 
+                        controller.setAction,
+                      ),
                       const SizedBox(width: 10),
-                      _buildFilterChip('Tipo', _selectedPropertyType, ['Todos', 'Casa', 'Apartamento'], (value) {
-                        setState(() => _selectedPropertyType = value);
-                      }),
+                      _buildFilterChip(
+                        controller,
+                        'Tipo', 
+                        controller.selectedPropertyType.value, 
+                        ['Todos', 'Casa', 'Apartamento'], 
+                        controller.setPropertyType,
+                      ),
                       const SizedBox(width: 10),
-                      _buildFilterChip('Precio', _selectedPriceRange, ['Todos', 'Bajo', 'Medio', 'Alto'], (value) {
-                        setState(() => _selectedPriceRange = value);
-                      }),
+                      _buildFilterChip(
+                        controller,
+                        'Precio', 
+                        controller.selectedPriceRange.value, 
+                        ['Todos', 'Bajo', 'Medio', 'Alto'], 
+                        controller.setPriceRange,
+                      ),
                     ],
                   ),
-                ),
+                )),
               ],
             ),
           ),
           
           // Lista de propiedades
           Expanded(
-            child: StreamBuilder<List<Property>>(
-              stream: _propertyService.getAllPropertiesSimple(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircularProgressIndicator(
-                          color: Color(0xFFF88245),
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(
+                        color: Color(0xFFF88245),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Cargando propiedades...',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '🔥 Conectando con Firebase',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade600,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Cargando propiedades...',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '🔥 Conectando con Firebase',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                      ),
+                    ],
+                  ),
+                );
+              }
 
-                if (snapshot.hasError) {
-                  return _buildEmptyState(
-                    'Error de conexión',
-                    'No se pudieron cargar las propiedades desde Firebase. Verifica tu conexión a internet.',
-                    Icons.error_outline,
-                    Colors.red,
-                  );
-                }
+              if (controller.error.value.isNotEmpty) {
+                return _buildEmptyState(
+                  'Error de conexión',
+                  'No se pudieron cargar las propiedades desde Firebase. Verifica tu conexión a internet.',
+                  Icons.error_outline,
+                  Colors.red,
+                );
+              }
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildEmptyState(
-                    'No hay propiedades disponibles',
-                    'Aún no hay propiedades registradas en la plataforma. ¡Pronto tendremos muchas opciones para ti!',
-                    Icons.home_outlined,
-                    const Color(0xFFF88245),
-                  );
-                }
+              if (controller.allProperties.isEmpty) {
+                return _buildEmptyState(
+                  'No hay propiedades disponibles',
+                  'Aún no hay propiedades registradas en la plataforma. ¡Pronto tendremos muchas opciones para ti!',
+                  Icons.home_outlined,
+                  const Color(0xFFF88245),
+                );
+              }
 
-                // Mostrar datos de Firebase
-                final filteredProperties = _filterProperties(snapshot.data!);
-                
-                if (filteredProperties.isEmpty) {
-                  return _buildEmptyState(
-                    'No se encontraron resultados',
-                    'No hay propiedades que coincidan con tus filtros de búsqueda. Intenta ajustar los criterios.',
-                    Icons.search_off,
-                    Colors.grey,
-                  );
-                }
-                
-                return _buildPropertiesList(filteredProperties);
-              },
-            ),
+              if (controller.filteredProperties.isEmpty) {
+                return _buildEmptyState(
+                  'No se encontraron resultados',
+                  'No hay propiedades que coincidan con tus filtros de búsqueda. Intenta ajustar los criterios.',
+                  Icons.search_off,
+                  Colors.grey,
+                );
+              }
+              
+              return _buildPropertiesList(controller, controller.filteredProperties);
+            }),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: Obx(() => BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primary,
         unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              // Ya estamos en Home
-              break;
-            case 1:
-              // Navegar a Favoritos
-              Get.toNamed('/favorites');
-              break;
-            case 2:
-              // Navegar a Perfil
-              Get.toNamed('/profile');
-              break;
-          }
-        },
+        currentIndex: controller.currentNavIndex.value,
+        onTap: controller.changeNavIndex,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -227,11 +191,17 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Perfil',
           ),
         ],
-      ),
+      )),
     );
   }
 
-  Widget _buildFilterChip(String label, String selectedValue, List<String> options, Function(String) onSelected) {
+  Widget _buildFilterChip(
+    HomeController controller,
+    String label, 
+    String selectedValue, 
+    List<String> options, 
+    Function(String) onSelected,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
@@ -261,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPropertyCard(Property property) {
+  Widget _buildPropertyCard(HomeController controller, Property property) {
     const primary = Color(0xFFF88245);
     
     return Container(
@@ -313,11 +283,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 top: 10,
                 left: 10,
                 child: FutureBuilder<bool>(
-                  future: _propertyService.isFavorite(property.id),
+                  future: controller.isFavorite(property.id),
                   builder: (context, snapshot) {
                     bool isFavorite = snapshot.data ?? false;
                     return GestureDetector(
-                      onTap: () => _toggleFavorite(property),
+                      onTap: () => controller.toggleFavorite(property.id),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -415,19 +385,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navegar a detalles de la propiedad
-                        _showPropertyDetails(property);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                    Builder(
+                      builder: (context) => ElevatedButton(
+                        onPressed: () {
+                          // Navegar a detalles de la propiedad
+                          _showPropertyDetails(context, property);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                         ),
+                        child: const Text('Ver más'),
                       ),
-                      child: const Text('Ver más'),
                     ),
                   ],
                 ),
@@ -464,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return '\$${price.toStringAsFixed(0)}';
   }
 
-  void _showPropertyDetails(Property property) {
+  void _showPropertyDetails(BuildContext context, Property property) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -609,12 +581,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPropertiesList(List<Property> properties) {
+  Widget _buildPropertiesList(HomeController controller, List<Property> properties) {
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: properties.length,
       itemBuilder: (context, index) {
-        return _buildPropertyCard(properties[index]);
+        return _buildPropertyCard(controller, properties[index]);
       },
     );
   }
@@ -653,39 +625,5 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Método para toggle de favoritos
-  void _toggleFavorite(Property property) async {
-    try {
-      await _propertyService.toggleFavorite(property.id);
-      
-      if (mounted) {
-        bool isFavorite = await _propertyService.isFavorite(property.id);
-        String message = isFavorite 
-            ? '${property.title} agregado a favoritos' 
-            : '${property.title} removido de favoritos';
-            
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: isFavorite ? Colors.green : Colors.orange,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        
-        // Actualizar la UI
-        setState(() {});
-      }
-    } catch (e) {
-      if (mounted) {
-        String errorMessage = e.toString();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
 }
 
