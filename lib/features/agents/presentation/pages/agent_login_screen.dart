@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:alquilamelo_app/core/routes.dart';
 import 'package:alquilamelo_app/features/agents/data/datasources/agent_service_legacy.dart';
 
 class AgentLoginScreen extends StatefulWidget {
@@ -234,7 +236,7 @@ class _AgentLoginScreenState extends State<AgentLoginScreen> {
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: _isLoading ? null : () {
-                            Navigator.pushNamed(context, '/agent-register');
+                            Get.toNamed(AppRoutes.agentRegister);
                           },
                           child: Text(
                             'Solicitar acceso como agente',
@@ -253,7 +255,7 @@ class _AgentLoginScreenState extends State<AgentLoginScreen> {
                   // Botón para volver
                   TextButton.icon(
                     onPressed: _isLoading ? null : () {
-                      Navigator.pushReplacementNamed(context, '/login');
+                      Get.offNamed(AppRoutes.login);
                     },
                     icon: Icon(Icons.arrow_back, color: Colors.grey.shade600),
                     label: Text(
@@ -296,7 +298,7 @@ class _AgentLoginScreenState extends State<AgentLoginScreen> {
         if (isAgent) {
           // Si es agente, navegar al dashboard
           if (mounted) {
-            Navigator.pushReplacementNamed(context, '/agent-dashboard');
+            Get.offAllNamed(AppRoutes.agentDashboard);
           }
         } else {
           // Si no es agente, mostrar error y cerrar sesión

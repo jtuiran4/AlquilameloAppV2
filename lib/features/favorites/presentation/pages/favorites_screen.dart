@@ -4,12 +4,11 @@ import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legac
 import 'package:alquilamelo_app/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:alquilamelo_app/features/home/presentation/pages/property_detail_screen.dart';
 
-class FavoritesScreen extends StatelessWidget {
+class FavoritesScreen extends GetView<FavoritesController> {
   const FavoritesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(FavoritesController());
     const primary = Color(0xFFF88245);
     
     return Scaffold(
@@ -20,7 +19,7 @@ class FavoritesScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: controller.navigateToHome,
+          onPressed: controller.goBack,
         ),
         title: const Row(
           mainAxisSize: MainAxisSize.min,

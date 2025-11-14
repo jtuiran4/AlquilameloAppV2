@@ -242,6 +242,8 @@ class PropertyInquiry {
   final String status; // 'pending', 'in_progress', 'completed'
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String? resolutionNotes; // Notas de resolución cuando se completa
+  final DateTime? completedAt; // Fecha de completado
 
   PropertyInquiry({
     required this.id,
@@ -257,6 +259,8 @@ class PropertyInquiry {
     this.status = 'pending',
     required this.createdAt,
     this.updatedAt,
+    this.resolutionNotes,
+    this.completedAt,
   });
 
   // Convertir desde Firestore
@@ -275,6 +279,8 @@ class PropertyInquiry {
       status: data['status'] ?? 'pending',
       createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
       updatedAt: data['updatedAt']?.toDate(),
+      resolutionNotes: data['resolutionNotes'],
+      completedAt: data['completedAt']?.toDate(),
     );
   }
 
@@ -293,6 +299,8 @@ class PropertyInquiry {
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
+      'resolutionNotes': resolutionNotes,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
     };
   }
 }

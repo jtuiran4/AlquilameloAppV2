@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
+import 'package:alquilamelo_app/core/routes.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
   final Property property;
@@ -176,9 +178,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                     height: 50,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/agent-contact',
+                        Get.toNamed(
+                          AppRoutes.agentContact,
                           arguments: {'property': widget.property},
                         );
                       },

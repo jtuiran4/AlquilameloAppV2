@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
@@ -5,6 +6,7 @@ import 'package:alquilamelo_app/features/shared/data/datasources/property_servic
 
 class HomeController extends GetxController {
   final PropertyService _propertyService = PropertyService();
+  StreamSubscription<List<Property>>? _propertiesSubscription;
   
   // Controladores de texto
   final searchController = TextEditingController();
@@ -30,7 +32,7 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
-    searchController.dispose();
+    _propertiesSubscription?.cancel();
     super.onClose();
   }
 
@@ -39,15 +41,19 @@ class HomeController extends GetxController {
     isLoading.value = true;
     error.value = '';
     
-    _propertyService.getAllPropertiesSimple().listen(
+    _propertiesSubscription = _propertyService.getAllPropertiesSimple().listen(
       (properties) {
-        allProperties.value = properties;
-        _applyFilters();
-        isLoading.value = false;
+        if (!isClosed) {
+          allProperties.value = properties;
+          _applyFilters();
+          isLoading.value = false;
+        }
       },
       onError: (e) {
-        error.value = e.toString();
-        isLoading.value = false;
+        if (!isClosed) {
+          error.value = e.toString();
+          isLoading.value = false;
+        }
       },
     );
   }

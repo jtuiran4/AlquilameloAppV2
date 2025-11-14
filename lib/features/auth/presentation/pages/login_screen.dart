@@ -1,4 +1,6 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:alquilamelo_app/core/routes.dart';
 import 'package:alquilamelo_app/features/auth/data/datasources/auth_service_legacy.dart';
 import 'package:alquilamelo_app/features/shared/data/datasources/shared_preferences_service_legacy.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
@@ -86,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await Future.delayed(const Duration(milliseconds: 1500));
         
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/home');
+          Get.offAllNamed(AppRoutes.home);
         }
       } else {
         setState(() {
@@ -404,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        Navigator.of(context).pushReplacementNamed('/register');
+                        Get.offNamed(AppRoutes.register);
                       },
                       child: const Text(
                         "Regístrate aquí",
@@ -459,7 +461,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        Navigator.of(context).pushNamed('/agent-login');
+                        Get.toNamed(AppRoutes.agentLogin);
                       },
                       child: Text(
                         "¿Eres de nuestros agentes? ¡Ingresa aquí!",

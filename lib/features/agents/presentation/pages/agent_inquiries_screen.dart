@@ -1,69 +1,10 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:alquilamelo_app/features/agents/data/datasources/agent_service_legacy.dart';
+import 'package:get/get.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
+import 'package:alquilamelo_app/features/agents/presentation/controllers/agent_inquiries_controller.dart';
 
-class AgentInquiriesScreen extends StatefulWidget {
+class AgentInquiriesScreen extends GetView<AgentInquiriesController> {
   const AgentInquiriesScreen({super.key});
-
-  @override
-  State<AgentInquiriesScreen> createState() => _AgentInquiriesScreenState();
-}
-
-class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
-  final AgentService _agentService = AgentService();
-  List<PropertyInquiry> _inquiries = [];
-  bool _isLoading = true;
-  String _selectedFilter = 'Todas';
-
-  final List<String> _filters = ['Todas', 'Pendientes', 'En Progreso', 'Completadas'];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInquiries();
-  }
-
-  Future<void> _loadInquiries() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      _agentService.getAgentInquiries().listen((inquiries) {
-        if (mounted) {
-          setState(() {
-            _inquiries = inquiries;
-            _isLoading = false;
-          });
-        }
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar consultas: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  List<PropertyInquiry> get _filteredInquiries {
-    switch (_selectedFilter) {
-      case 'Pendientes':
-        return _inquiries.where((i) => i.status == 'pending').toList();
-      case 'En Progreso':
-        return _inquiries.where((i) => i.status == 'in_progress').toList();
-      case 'Completadas':
-        return _inquiries.where((i) => i.status == 'completed').toList();
-      default:
-        return _inquiries;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,13 +16,17 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+        ),
         title: const Text(
           'Consultas de Usuarios',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            onPressed: _loadInquiries,
+            onPressed: controller.refresh,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -93,18 +38,16 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
             padding: const EdgeInsets.all(16),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters.map((filter) {
-                  final isSelected = _selectedFilter == filter;
+              child: Obx(() => Row(
+                children: controller.filters.map((filter) {
+                  final isSelected = controller.selectedFilter.value == filter;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
                       label: Text(filter),
                       selected: isSelected,
                       onSelected: (selected) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
+                        controller.setFilter(filter);
                       },
                       selectedColor: primary.withValues(alpha: 0.2),
                       checkmarkColor: primary,
@@ -115,12 +58,12 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
                     ),
                   );
                 }).toList(),
-              ),
+              )),
             ),
           ),
           
           // Estadísticas rápidas
-          Container(
+          Obx(() => Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -139,7 +82,7 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'Total', 
-                    _inquiries.length.toString(),
+                    controller.allInquiries.length.toString(),
                     Icons.message,
                     primary,
                   ),
@@ -148,7 +91,7 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'Pendientes', 
-                    _inquiries.where((i) => i.status == 'pending').length.toString(),
+                    controller.allInquiries.where((i) => i.status == 'pending').length.toString(),
                     Icons.schedule,
                     Colors.orange,
                   ),
@@ -157,7 +100,7 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'En Progreso', 
-                    _inquiries.where((i) => i.status == 'in_progress').length.toString(),
+                    controller.allInquiries.where((i) => i.status == 'in_progress').length.toString(),
                     Icons.work,
                     Colors.blue,
                   ),
@@ -166,33 +109,39 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'Completadas', 
-                    _inquiries.where((i) => i.status == 'completed').length.toString(),
+                    controller.allInquiries.where((i) => i.status == 'completed').length.toString(),
                     Icons.check_circle,
                     Colors.green,
                   ),
                 ),
               ],
             ),
-          ),
+          )),
           
           const SizedBox(height: 16),
           
           // Lista de consultas
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: primary),
-                  )
-                : _filteredInquiries.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredInquiries.length,
-                        itemBuilder: (context, index) {
-                          final inquiry = _filteredInquiries[index];
-                          return _buildInquiryCard(inquiry);
-                        },
-                      ),
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return const Center(
+                  child: CircularProgressIndicator(color: primary),
+                );
+              }
+              
+              if (controller.filteredInquiries.isEmpty) {
+                return _buildEmptyState();
+              }
+              
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: controller.filteredInquiries.length,
+                itemBuilder: (context, index) {
+                  final inquiry = controller.filteredInquiries[index];
+                  return _buildInquiryCard(inquiry);
+                },
+              );
+            }),
           ),
         ],
       ),
@@ -440,6 +389,111 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
               const SizedBox(height: 16),
             ],
             
+            // Detalles de completado (solo si está completada)
+            if (inquiry.status == 'completed') ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3), width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade700,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Detalles de completado',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Fecha de completado
+                    if (inquiry.completedAt != null) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.event_available, size: 16, color: Colors.grey.shade700),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Completada el ${_formatDate(inquiry.completedAt!)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    
+                    // Notas de resolución
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.notes, size: 16, color: Colors.grey.shade700),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Resolución:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        inquiry.resolutionNotes != null && inquiry.resolutionNotes!.isNotEmpty
+                            ? inquiry.resolutionNotes!
+                            : 'Sin detalles de resolución',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: inquiry.resolutionNotes != null && inquiry.resolutionNotes!.isNotEmpty
+                              ? Colors.black87
+                              : Colors.grey.shade500,
+                          fontStyle: inquiry.resolutionNotes != null && inquiry.resolutionNotes!.isNotEmpty
+                              ? FontStyle.normal
+                              : FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             
             // Footer con fecha y acciones
@@ -522,8 +576,8 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            _selectedFilter == 'Todas' 
+          Obx(() => Text(
+            controller.selectedFilter.value == 'Todas' 
                 ? 'No tienes consultas aún'
                 : 'No hay consultas en esta categoría',
             style: const TextStyle(
@@ -531,17 +585,17 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
-          ),
+          )),
           const SizedBox(height: 8),
-          Text(
-            _selectedFilter == 'Todas' 
+          Obx(() => Text(
+            controller.selectedFilter.value == 'Todas' 
                 ? 'Las consultas de los usuarios aparecerán aquí'
                 : 'Intenta con otro filtro',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade600,
             ),
-          ),
+          )),
         ],
       ),
     );
@@ -577,45 +631,174 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
   }
 
   Future<void> _updateInquiryStatus(PropertyInquiry inquiry, String newStatus) async {
-    try {
-      await _agentService.updateInquiryStatus(inquiry.id, newStatus);
+    // Si se va a marcar como completada, pedir notas de resolución
+    if (newStatus == 'completed') {
+      String selectedOutcome = 'Vendida';
+      String additionalNotes = '';
       
-      String statusText;
-      switch (newStatus) {
-        case 'in_progress':
-          statusText = 'marcada en progreso';
-          break;
-        case 'completed':
-          statusText = 'marcada como completada';
-          break;
-        default:
-          statusText = 'actualizada';
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Consulta $statusText'),
-            backgroundColor: Colors.green,
-          ),
+      final result = await Get.dialog<Map<String, String>>(
+        StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Completar Consulta'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Resultado de la consulta:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Opciones de resultado
+                    RadioListTile<String>(
+                      title: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.green, size: 20),
+                          SizedBox(width: 8),
+                          Text('Vendida'),
+                        ],
+                      ),
+                      value: 'Vendida',
+                      groupValue: selectedOutcome,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedOutcome = value!;
+                        });
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                    RadioListTile<String>(
+                      title: const Row(
+                        children: [
+                          Icon(Icons.cancel, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Text('Sin éxito'),
+                        ],
+                      ),
+                      value: 'Sin éxito',
+                      groupValue: selectedOutcome,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedOutcome = value!;
+                        });
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                    RadioListTile<String>(
+                      title: const Row(
+                        children: [
+                          Icon(Icons.schedule, color: Colors.orange, size: 20),
+                          SizedBox(width: 8),
+                          Text('Pospuesto'),
+                        ],
+                      ),
+                      value: 'Pospuesto',
+                      groupValue: selectedOutcome,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedOutcome = value!;
+                        });
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Detalles adicionales (opcional):',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      maxLines: 3,
+                      onChanged: (value) {
+                        additionalNotes = value;
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Agrega detalles adicionales...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Get.back(result: null),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Get.back(result: {
+                      'outcome': selectedOutcome,
+                      'notes': additionalNotes,
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Completar'),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      if (result != null) {
+        final outcome = result['outcome']!;
+        final notes = result['notes'] ?? '';
+        final fullNotes = notes.isNotEmpty ? '$outcome: $notes' : outcome;
+        
+        await controller.updateInquiryStatus(
+          inquiry.id, 
+          newStatus,
+          resolutionNotes: fullNotes,
         );
+        
+        // Si fue vendida, incrementar contador del agente
+        if (outcome == 'Vendida') {
+          await _incrementAgentSales(inquiry.agentId);
+        }
+        
+        // Cambiar automáticamente al filtro de completadas
+        controller.setFilter('Completadas');
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al actualizar consulta: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+    } else {
+      // Para otros estados, actualizar directamente
+      await controller.updateInquiryStatus(inquiry.id, newStatus);
+      // Si se marca como completada, cambiar al filtro correspondiente
+      if (newStatus == 'completed') {
+        controller.setFilter('Completadas');
       }
     }
   }
 
+  Future<void> _incrementAgentSales(String agentId) async {
+    try {
+      await controller.incrementAgentSales(agentId);
+    } catch (e) {
+      // Error silencioso, no afecta la UX
+    }
+  }
+
   Future<void> _contactUser(PropertyInquiry inquiry) async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+    Get.dialog(
+      AlertDialog(
         title: const Text('Información de Contacto'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -634,7 +817,7 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
           if (inquiry.userPhone.isNotEmpty)
             TextButton.icon(
               onPressed: () {
-                Navigator.pop(context);
+                Get.back();
                 _makePhoneCall(inquiry.userPhone);
               },
               icon: const Icon(Icons.phone),
@@ -643,14 +826,14 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
           if (inquiry.userEmail.isNotEmpty)
             TextButton.icon(
               onPressed: () {
-                Navigator.pop(context);
+                Get.back();
                 _sendEmail(inquiry.userEmail);
               },
               icon: const Icon(Icons.email),
               label: const Text('Email'),
             ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Get.back(),
             child: const Text('Cerrar'),
           ),
         ],
@@ -660,35 +843,23 @@ class _AgentInquiriesScreenState extends State<AgentInquiriesScreen> {
 
   void _makePhoneCall(String phoneNumber) {
     // En una implementación real, aquí usarías url_launcher
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Llamando a $phoneNumber...'),
-        backgroundColor: Colors.green,
-        action: SnackBarAction(
-          label: 'Copiar',
-          textColor: Colors.white,
-          onPressed: () {
-            // Aquí podrías copiar al clipboard
-          },
-        ),
-      ),
+    Get.snackbar(
+      'Teléfono',
+      'Llamando a $phoneNumber...',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
     );
   }
 
   void _sendEmail(String email) {
     // En una implementación real, aquí usarías url_launcher
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Enviando email a $email...'),
-        backgroundColor: Colors.blue,
-        action: SnackBarAction(
-          label: 'Copiar',
-          textColor: Colors.white,
-          onPressed: () {
-            // Aquí podrías copiar al clipboard
-          },
-        ),
-      ),
+    Get.snackbar(
+      'Email',
+      'Enviando email a $email...',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
     );
   }
 }

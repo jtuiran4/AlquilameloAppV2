@@ -4,12 +4,11 @@ import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legac
 import 'package:alquilamelo_app/features/shared/presentation/widgets/property_image_carousel.dart';
 import 'package:alquilamelo_app/features/home/presentation/controllers/home_controller.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends GetView<HomeController> {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(HomeController());
     const primary = Color(0xFFF88245);
     
     return Scaffold(

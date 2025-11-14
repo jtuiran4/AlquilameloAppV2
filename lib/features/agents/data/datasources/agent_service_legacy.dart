@@ -213,61 +213,23 @@ class AgentService {
     return _firestore
         .collection('contacts')
         .where('agentId', isEqualTo: currentUser.uid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .asyncMap((snapshot) async {
       List<PropertyInquiry> inquiries = [];
+      
+      // Ordenar manualmente en memoria después de obtener los datos
+      var docs = snapshot.docs.toList();
+      docs.sort((a, b) {
+        final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+        final bTime = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+        return bTime.compareTo(aTime); // descendente
+      });
 
-      for (var doc in snapshot.docs) {
+      for (var doc in docs) {
         final data = doc.data();
         
-        // Obtener información de la propiedad
-        Property? property;
-        try {
-          final propertyDoc = await _firestore
-              .collection('properties')
-              .doc(data['propertyId'])
-              .get();
-          
-          if (propertyDoc.exists) {
-            property = Property.fromFirestore(
-              propertyDoc.data() as Map<String, dynamic>, 
-              propertyDoc.id
-            );
-          }
-        } catch (e) {
-          print('Error obteniendo propiedad: $e');
-        }
-
-        // Obtener información del usuario
-        UserProfile? user;
-        try {
-          final userDoc = await _firestore
-              .collection('users')
-              .doc(data['userId'])
-              .get();
-          
-          if (userDoc.exists) {
-            user = UserProfile.fromFirestore(userDoc);
-          }
-        } catch (e) {
-          print('Error obteniendo usuario: $e');
-        }
-
-        inquiries.add(PropertyInquiry(
-          id: doc.id,
-          propertyId: data['propertyId'] ?? '',
-          propertyTitle: property?.title ?? data['propertyTitle'] ?? '',
-          propertyLocation: property?.location ?? data['propertyLocation'] ?? '',
-          userId: data['userId'] ?? '',
-          userName: user?.name ?? data['userName'] ?? '',
-          userEmail: user?.email ?? data['userEmail'] ?? '',
-          userPhone: user?.phone ?? data['userPhone'] ?? '',
-          agentId: data['agentId'] ?? '',
-          message: data['message'] ?? '',
-          status: data['status'] ?? 'pending',
-          createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
-        ));
+        // Usar fromFirestore para incluir todos los campos (resolutionNotes, completedAt, etc.)
+        inquiries.add(PropertyInquiry.fromFirestore(data, doc.id));
       }
 
       return inquiries;
@@ -275,17 +237,25 @@ class AgentService {
   }
 
   // Actualizar estado de consulta
-  Future<void> updateInquiryStatus(String inquiryId, String status) async {
+  Future<void> updateInquiryStatus(String inquiryId, String status, {String? resolutionNotes}) async {
     try {
+      Map<String, dynamic> updateData = {
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Si se marca como completada y hay notas, agregarlas
+      if (status == 'completed') {
+        updateData['completedAt'] = FieldValue.serverTimestamp();
+        if (resolutionNotes != null && resolutionNotes.isNotEmpty) {
+          updateData['resolutionNotes'] = resolutionNotes;
+        }
+      }
+
       await _firestore
           .collection('contacts')
           .doc(inquiryId)
-          .update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      print('✅ Estado de consulta actualizado: $status');
+          .update(updateData);
     } catch (e) {
       print('❌ Error actualizando estado de consulta: $e');
       rethrow;
@@ -342,6 +312,30 @@ class AgentService {
       return imageUrls;
     } catch (e) {
       print('❌ Error subiendo imágenes: $e');
+      rethrow;
+    }
+  }
+
+  // Incrementar contador de ventas del agente
+  Future<void> incrementAgentSales(String agentId) async {
+    try {
+      final agentRef = _firestore.collection('agents').doc(agentId);
+      
+      await _firestore.runTransaction((transaction) async {
+        final agentDoc = await transaction.get(agentRef);
+        
+        if (!agentDoc.exists) {
+          throw 'Agente no encontrado';
+        }
+        
+        final currentSales = agentDoc.data()?['propertiesSold'] ?? 0;
+        transaction.update(agentRef, {
+          'propertiesSold': currentSales + 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+    } catch (e) {
       rethrow;
     }
   }

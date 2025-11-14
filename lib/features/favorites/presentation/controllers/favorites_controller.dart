@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:alquilamelo_app/features/shared/domain/entities/app_models_legacy.dart';
@@ -6,6 +7,7 @@ import 'package:alquilamelo_app/features/shared/data/datasources/property_servic
 class FavoritesController extends GetxController {
   final PropertyService _propertyService = PropertyService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription<List<Property>>? _favoritesSubscription;
 
   // Estado observable
   final RxList<Property> favoriteProperties = <Property>[].obs;
@@ -24,19 +26,29 @@ class FavoritesController extends GetxController {
     }
   }
 
+  @override
+  void onClose() {
+    _favoritesSubscription?.cancel();
+    super.onClose();
+  }
+
   /// Cargar propiedades favoritas
   void _loadFavorites() {
     isLoading.value = true;
     error.value = '';
     
-    _propertyService.getFavoriteProperties().listen(
+    _favoritesSubscription = _propertyService.getFavoriteProperties().listen(
       (properties) {
-        favoriteProperties.value = properties;
-        isLoading.value = false;
+        if (!isClosed) {
+          favoriteProperties.value = properties;
+          isLoading.value = false;
+        }
       },
       onError: (e) {
-        error.value = e.toString();
-        isLoading.value = false;
+        if (!isClosed) {
+          error.value = e.toString();
+          isLoading.value = false;
+        }
       },
     );
   }
@@ -63,9 +75,9 @@ class FavoritesController extends GetxController {
   /// Navegar a detalle de propiedad
   /// Nota: La navegación se maneja directamente en la vista usando Get.to()
 
-  /// Navegar al home
-  void navigateToHome() {
-    Get.offAllNamed('/home');
+  /// Volver atrás
+  void goBack() {
+    Get.back();
   }
 
   /// Navegar al login
