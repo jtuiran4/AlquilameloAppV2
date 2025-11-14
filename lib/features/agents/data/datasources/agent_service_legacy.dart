@@ -162,11 +162,18 @@ class AgentService {
     try {
       User? currentUser = _auth.currentUser;
       if (currentUser == null) {
-        return AgentStats(
-          totalProperties: 0,
-          activeProperties: 0,
-          totalInquiries: 0,
-        );
+        return AgentStats();
+      }
+
+      // Obtener información del agente
+      final agentDoc = await _firestore
+          .collection('agents')
+          .doc(currentUser.uid)
+          .get();
+      
+      int propertiesSold = 0;
+      if (agentDoc.exists) {
+        propertiesSold = agentDoc.data()?['propertiesSold'] ?? 0;
       }
 
       // Obtener todas las propiedades del agente
@@ -187,19 +194,23 @@ class AgentService {
           .get();
 
       int totalInquiries = inquiriesSnapshot.docs.length;
+      int pendingInquiries = inquiriesSnapshot.docs
+          .where((doc) => doc.data()['status'] == 'pending')
+          .length;
+      int completedInquiries = inquiriesSnapshot.docs
+          .where((doc) => doc.data()['status'] == 'completed')
+          .length;
 
       return AgentStats(
         totalProperties: totalProperties,
         activeProperties: activeProperties,
         totalInquiries: totalInquiries,
+        pendingInquiries: pendingInquiries,
+        completedInquiries: completedInquiries,
+        propertiesSold: propertiesSold,
       );
     } catch (e) {
-      print('❌ Error obteniendo estadísticas del agente: $e');
-      return AgentStats(
-        totalProperties: 0,
-        activeProperties: 0,
-        totalInquiries: 0,
-      );
+      return AgentStats();
     }
   }
 

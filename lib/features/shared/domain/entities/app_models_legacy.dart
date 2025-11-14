@@ -311,6 +311,7 @@ class AgentStats {
   final int totalInquiries;
   final int pendingInquiries;
   final int completedInquiries;
+  final int propertiesSold;
   final double averageRating;
 
   AgentStats({
@@ -319,6 +320,7 @@ class AgentStats {
     this.totalInquiries = 0,
     this.pendingInquiries = 0,
     this.completedInquiries = 0,
+    this.propertiesSold = 0,
     this.averageRating = 0.0,
   });
 }

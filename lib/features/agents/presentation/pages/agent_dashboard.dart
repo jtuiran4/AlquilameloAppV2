@@ -209,6 +209,74 @@ class _AgentDashboardState extends State<AgentDashboard> {
             ),
             const SizedBox(height: 20),
 
+            // Estadísticas
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Mis Estadísticas',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FutureBuilder(
+                    future: _agentService.getAgentStats(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final stats = snapshot.data!;
+                      final propertiesSold = stats.propertiesSold;
+                      final totalInquiries = stats.totalInquiries;
+                      final completedInquiries = stats.completedInquiries;
+                      final pendingInquiries = stats.pendingInquiries;
+                      final successRate = totalInquiries > 0 
+                          ? ((completedInquiries / totalInquiries) * 100).toStringAsFixed(1)
+                          : '0.0';
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              icon: Icons.sell,
+                              title: 'Vendidas',
+                              value: '$propertiesSold',
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              icon: Icons.trending_up,
+                              title: 'Éxito',
+                              value: '$successRate%',
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              icon: Icons.pending_actions,
+                              title: 'Pendientes',
+                              value: '$pendingInquiries',
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
             // Acciones rápidas
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -307,6 +375,50 @@ class _AgentDashboardState extends State<AgentDashboard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }
