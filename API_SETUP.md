@@ -1,5 +1,7 @@
 # Firebase and ImageKit Configuration
 
+⚠️ **CRITICAL SECURITY NOTICE**: API keys were previously committed to git history. See [SECURITY_GIT_HISTORY_CLEANUP.md](SECURITY_GIT_HISTORY_CLEANUP.md) for instructions on removing them from git history and regenerating compromised keys.
+
 This project uses Firebase for its backend services and ImageKit for image management. To run the app, you need to configure both services with your own credentials.
 
 ## Prerequisites
