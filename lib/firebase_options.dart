@@ -47,7 +47,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBpBW1xk3GqqLsBtqeGGHx7Zcli-teeb0s',
+    apiKey: '',
     appId: '1:466263678460:android:d8af83f45773eb24bee679',
     messagingSenderId: '466263678460',
     projectId: 'alquilamelo-app',
@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC_hglfJ04691SNofetlsrcEU50-vKuQ1g',
+    apiKey: '',
     appId: '1:466263678460:ios:13a72bdf4f8e60debee679',
     messagingSenderId: '466263678460',
     projectId: 'alquilamelo-app',
@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDPEDQQt9Zj_odSpReJ6OLWnWeT9dE890M',
+    apiKey: '',
     appId: '1:466263678460:web:4863b7e8b399b0e4bee679',
     messagingSenderId: '466263678460',
     projectId: 'alquilamelo-app',
