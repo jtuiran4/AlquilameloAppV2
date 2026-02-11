@@ -47,3 +47,6 @@ app.*.map.json
 # Firebase configuration files (contain sensitive API keys)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+
+# ImageKit configuration file (contains API keys)
+lib/core/imagekit_config.dart

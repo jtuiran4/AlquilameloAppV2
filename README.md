@@ -8,7 +8,7 @@ This project is a starting point for a Flutter application.
 
 ### Firebase Configuration
 
-**IMPORTANT:** Before running the app, you need to configure Firebase. See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed instructions.
+**IMPORTANT:** Before running the app, you need to configure Firebase and ImageKit. See [API_SETUP.md](API_SETUP.md) for detailed instructions.
 
 ### Resources
 
