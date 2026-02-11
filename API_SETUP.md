@@ -2,6 +2,15 @@
 
 This project uses Firebase for its backend services and ImageKit for image management. To run the app, you need to configure both services with your own credentials.
 
+## Prerequisites
+
+Before starting the setup, ensure you have:
+
+1. **Firebase Account**: Sign up at [Firebase Console](https://console.firebase.google.com/) (free tier available)
+2. **ImageKit Account**: Sign up at [ImageKit Registration](https://imagekit.io/registration) (free tier available, no credit card required)
+3. **Flutter SDK**: Installed and configured on your development machine
+4. Access to the project repository with write permissions to create local configuration files
+
 ## Firebase Setup
 
 ### Android Configuration
