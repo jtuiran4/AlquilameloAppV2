@@ -35,9 +35,23 @@ ImageKit is used for image upload and management in the app.
 6. Replace the placeholder values with your actual ImageKit credentials:
    - `publicKey`: Your ImageKit public key
    - `urlEndpoint`: Your ImageKit URL endpoint
-   - `privateKey`: Your ImageKit private key
+   - `privateKey`: Your ImageKit private key (⚠️ see security note below)
 
 **Note:** The file `lib/core/imagekit_config.dart.example` is provided as a template. DO NOT commit your actual `imagekit_config.dart` file to version control.
+
+### ⚠️ Security Warning for ImageKit Private Key
+
+**IMPORTANT**: The current implementation stores the ImageKit private key in client-side code. This is **NOT SECURE** for production use. The private key should NEVER be exposed in client applications.
+
+**For Development**: You can use the private key temporarily for testing purposes.
+
+**For Production**: You MUST implement a backend server that:
+- Stores the private key securely on the server side
+- Handles all signature generation server-side
+- Provides secure endpoints for image upload operations
+- Never exposes the private key to the client
+
+Consider using Firebase Functions or another backend solution to securely handle ImageKit operations that require the private key.
 
 ## Security Notice
 

@@ -5,10 +5,19 @@
 // 3. En el dashboard, ve a "Developer options" → "API Keys"
 // 4. Copia los datos y pégalos aquí:
 
+// ⚠️ ADVERTENCIA DE SEGURIDAD:
+// El uso de privateKey en código cliente NO ES SEGURO.
+// La clave privada debería estar SOLO en el backend/servidor.
+// En una aplicación de producción, las operaciones que requieren
+// la clave privada deberían realizarse en un servidor backend seguro.
+
 class ImageKitConfig {
   // 🔧 Reemplaza con tus datos de ImageKit
   static const String publicKey = 'TU_PUBLIC_KEY_AQUI';
   static const String urlEndpoint = 'https://ik.imagekit.io/TU_ID_AQUI/';
+  
+  // ⚠️ SOLO PARA DESARROLLO - NO USAR EN PRODUCCIÓN
+  // En producción, mover toda la lógica de firma al backend
   static const String privateKey = 'TU_PRIVATE_KEY_AQUI';
   
   // URLs de la API
@@ -17,7 +26,6 @@ class ImageKitConfig {
   // ✅ Validar configuración
   static bool get isConfigured {
     return publicKey != 'TU_PUBLIC_KEY_AQUI' && 
-           privateKey != 'TU_PRIVATE_KEY_AQUI' &&
            urlEndpoint != 'https://ik.imagekit.io/TU_ID_AQUI/';
   }
   
@@ -29,6 +37,9 @@ Para configurar ImageKit:
 2. Regístrate gratis (sin tarjeta de crédito)
 3. En el dashboard, ve a "Developer options" → "API Keys"
 4. Copia los datos y actualiza los valores en imagekit_config.dart
+
+⚠️ IMPORTANTE: En producción, la clave privada NO debe estar en el código cliente.
+Implementa un backend que maneje las operaciones con clave privada de forma segura.
 ''';
   }
   
