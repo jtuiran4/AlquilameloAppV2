@@ -7,9 +7,9 @@
 
 class ImageKitConfig {
   // 🔧 Reemplaza con tus datos de ImageKit
-  static const String publicKey = 'public_waBEi2DKhdfDSLxzCC2le7gIYh8=';
-  static const String urlEndpoint = 'https://ik.imagekit.io/m40hxtrhc/';
-  static const String privateKey = 'private_G8Agx7g0ENDvoTOqls6XZt4b0Js=';
+  static const String publicKey = '';
+  static const String urlEndpoint = '';
+  static const String privateKey = '';
   
   // URLs de la API
   static const String uploadEndpoint = 'https://upload.imagekit.io/api/v1/files/upload';
