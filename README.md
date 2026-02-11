@@ -6,6 +6,12 @@ A new Flutter project.
 
 This project is a starting point for a Flutter application.
 
+### Firebase Configuration
+
+**IMPORTANT:** Before running the app, you need to configure Firebase and ImageKit. See [API_SETUP.md](API_SETUP.md) for detailed instructions.
+
+### Resources
+
 A few resources to get you started if this is your first Flutter project:
 
 - [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
